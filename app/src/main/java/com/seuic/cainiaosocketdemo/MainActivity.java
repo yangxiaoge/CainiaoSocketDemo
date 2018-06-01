@@ -16,6 +16,7 @@ import com.chad.library.adapter.base.BaseViewHolder;
 import com.vilyever.socketclient.SocketClient;
 import com.vilyever.socketclient.SocketResponsePacket;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,9 +93,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onResponse(SocketClient client, @NonNull SocketResponsePacket responsePacket) {
-                String responseMsg = responsePacket.getMessage();
-                int i = 1;
-                Log.i("Socket", "响应信息：" + responseMsg);
+//                String responseMsg = responsePacket.getMessage();
+//                Log.i("Socket", "响应信息：" + responseMsg);
+                byte[] data = responsePacket.getData();
+                Log.i("Socket", "响应字节："+ new String(data));
+                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+                parseData(byteArrayInputStream);
             }
         });
 
@@ -103,6 +107,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //socketClient.setRemoteNoReplyAliveTimeout(1000 * 60); //远程端在一定时间间隔没有消息后自动断开
         socketClient.setCharsetName("UTF-8");
         socketClient.connect();
+    }
+
+    private void parseData(ByteArrayInputStream netWStream) {
+        byte[] buf = new byte[18];
+
+        // check StartCode 检测数据包头0xFEFE
+        int goodIdx = 0;
+        int received = -1;
+        int time_count = 100;
+
+        received = netWStream.read(buf,0,1);
     }
 
     @Override
