@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * Created by yangjianan on 2018/6/1.
  */
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivityGithub extends AppCompatActivity implements View.OnClickListener {
     private SocketClient socketClient;
     private ProgressDialog progressDialog;
     private RecyclerView codeListRV;
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onConnected(SocketClient client) {
                 if (progressDialog.isShowing()) {
                     progressDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivityGithub.this, "连接成功", Toast.LENGTH_SHORT).show();
                 }
                 Log.i("Socket", "已连接onConnected:");
                 //socketClient.send("Android 你好");
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //连接终端，可以给一些页面提示
                 if (progressDialog.isShowing()) {
                     progressDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "连接超时", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivityGithub.this, "连接超时", Toast.LENGTH_SHORT).show();
                 }
                 String error = client.getCharsetName();
                 Log.i("Server", "onDisconnected超时timeout:" + error);
