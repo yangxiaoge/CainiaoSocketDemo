@@ -3,7 +3,6 @@ package com.seuic.cainiaosocketdemo;
 import android.app.ProgressDialog;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -15,12 +14,11 @@ import android.widget.Toast;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.vilyever.socketclient.SocketClient;
-import com.vilyever.socketclient.SocketResponsePacket;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
@@ -71,67 +69,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }, 2000);
     }
 
+    Socket socket;
     private void socketClient() {
-        progressDialog.setTitle("启动中");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-//        socketClient = new SocketClient("192.168.1.117", 20006);
-        socketClient = new SocketClient("192.168.80.80", 7777);
-//        socketClient = new SocketClient("192.168.1.117", 20006);
-        socketClient.registerSocketDelegate(new SocketClient.SocketDelegate() {
+        new Thread(new Runnable() {
             @Override
-            public void onConnected(SocketClient client) {
-                if (progressDialog.isShowing()) {
-                    progressDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
-                }
-                Log.i("Socket", "已连接onConnected:");
-                //socketClient.send("Android 你好");
-                //socketClient.setHeartBeatMessage("hello, server !");
-                //socketClient.sendString("string数据");
-            }
-
-            @Override
-            public void onDisconnected(SocketClient client) {
-                //连接终端，可以给一些页面提示
-                if (progressDialog.isShowing()) {
-                    progressDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "连接超时", Toast.LENGTH_SHORT).show();
-                }
-                String error = client.getCharsetName();
-                Log.i("Server", "onDisconnected超时timeout:" + error);
-
-                // 可在此实现自动重连
+            public void run() {
                 try {
-                    //socketClient.connect();
-                } catch (Exception e) {
+                    socket = new Socket("192.168.80.80",7777);
+                    InputStream is = socket.getInputStream();
+                    InputStreamReader isr = new InputStreamReader(is);
+                    BufferedReader bf = new BufferedReader(isr);
+                    String line = null;
+                    int count;
+                    byte[] bb = new byte[3000];
+                    while (true){
+//                        byte[] bytes = bf.readLine().getBytes();
+//                        System.out.println("bytes = "+ BytesHexStrTranslate.bytesToHexFun1(bytes));
+                        //parseData(new ByteArrayInputStream(bytes));
+
+                        byte[] tmp=new byte[3000];
+                        count = is.read(tmp);
+                        System.err.println("count"+count);
+                        parseData(is);
+                    }
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-
-            @Override
-            public void onResponse(SocketClient client, @NonNull SocketResponsePacket responsePacket) {
-//                String responseMsg = responsePacket.getMessage();
-//                Log.i("Socket", "响应信息：" + responseMsg);
-                byte[] data = responsePacket.getData();
-                System.out.println(new String(data));
-                Log.i("Socket", "响应字节：" + BytesHexStrTranslate.bytesToHexFun1(data));
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
-                BufferedInputStream bufferedInputStream = new BufferedInputStream(byteArrayInputStream);
-                //解析字节流数据
-                parseData(byteArrayInputStream);
-            }
-        });
-
-        socketClient.setConnectionTimeout(1000 * 15);
-//        socketClient.setHeartBeatInterval(3000);
-        socketClient.disableHeartBeat(); //禁止心跳,否则后台一直返回ok成功提示
-//        socketClient.setRemoteNoReplyAliveTimeout(1000 * 60); //远程端在一定时间间隔没有消息后自动断开
-        socketClient.setCharsetName("UTF-8");
-        socketClient.connect();
+        }).start();
     }
 
-    private boolean parseData(ByteArrayInputStream netWStream) {
+    private boolean parseData(InputStream netWStream) {
         xdata = new XData();
         byte[] buf = new byte[18];
         // check StartCode 检测数据包头0xFEFE
@@ -142,13 +110,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         while (true) {
             try {
                 received = netWStream.read(buf, 0, 1);
+                System.out.println("buf[0] = "+buf[0]);
             } catch (Exception ex) {
                 Log.i("Socket", "Read Exception " + ex.getMessage());
                 xdata.error_msg = "Read Exception " + ex.getMessage();
                 return false;
             }
             if (received > 0) {
-                if (buf[0] == 0xFE) {
+                System.out.println("buf[0] = "+buf[0]);
+                if (buf[0] == -2) {
+//                if (buf[0] == 0xFE) {
 //                if (buf[0] == 254) {
                     if (goodIdx == 1) {
                         break;
@@ -175,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         while (true) {
             if (remain_length > 0) {
                 try {
+                    Toast.makeText(this, "取条码长度", Toast.LENGTH_SHORT).show();
                     received = netWStream.read(temp_revbuf, 0, remain_length);
                     //Buffer.BlockCopy(temp_revbuf, 0, buf, received_Total, received);
                     System.arraycopy(temp_revbuf, 0, buf, received_Total, received);
@@ -468,9 +440,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.stop_socket:
                 //关闭socket连接
-                if (socketClient != null) {
-                    socketClient.disconnect();
-                    Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
+                if (socket != null) {
+                    try {
+                        socket.close();
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
                 break;
             case R.id.clear_data:

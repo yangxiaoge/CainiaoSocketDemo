@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,11 +113,10 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
             @Override
             public void onResponse(SocketClient client, @NonNull SocketResponsePacket responsePacket) {
 //                String responseMsg = responsePacket.getMessage();
-//                Log.i("Socket", "响应信息：" + responseMsg);
-                byte[] data = responsePacket.getData();
-                System.out.println(new String(data));
-                Log.i("Socket", "响应字节：" + BytesHexStrTranslate.bytesToHexFun1(data));
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+                byte[] datas = responsePacket.getData();
+                System.out.println(new String(datas, Charset.forName("utf-8")));
+                Log.i("Socket", "响应字节：" + BytesHexStrTranslate.bytesToHexFun1(datas));
+                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(datas);
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(byteArrayInputStream);
                 //解析字节流数据
                 parseData(byteArrayInputStream);
@@ -124,8 +124,8 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         });
 
         socketClient.setConnectionTimeout(1000 * 15);
-//        socketClient.setHeartBeatInterval(3000);
-        socketClient.disableHeartBeat(); //禁止心跳,否则后台一直返回ok成功提示
+//        socketClient.setHeartBeatInterval(1000);
+//        socketClient.disableHeartBeat(); //禁止心跳,否则后台一直返回ok成功提示
 //        socketClient.setRemoteNoReplyAliveTimeout(1000 * 60); //远程端在一定时间间隔没有消息后自动断开
         socketClient.setCharsetName("UTF-8");
         socketClient.connect();
@@ -138,17 +138,20 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         int goodIdx = 0;
         int received = -1;
         int time_count = 100;
-
+        System.out.println("buf[0]1 = "+buf[0]);
         while (true) {
             try {
                 received = netWStream.read(buf, 0, 1);
+                System.out.println("buf[0]2 = "+buf[0]);
+//                System.out.println("buf[0]2 new buf = "+BytesHexStrTranslate.bytesToHexFun1(buf));
+                System.out.println("buf[0]2 new buf = "+BytesHexStrTranslate.bytesToHexFun2(buf));
             } catch (Exception ex) {
                 Log.i("Socket", "Read Exception " + ex.getMessage());
                 xdata.error_msg = "Read Exception " + ex.getMessage();
                 return false;
             }
             if (received > 0) {
-                if (buf[0] == 0xFE) {
+                if (buf[0] == -2) {
 //                if (buf[0] == 254) {
                     if (goodIdx == 1) {
                         break;
