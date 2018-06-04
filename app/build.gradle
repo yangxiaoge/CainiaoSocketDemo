@@ -33,4 +33,5 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.github.vilyever:AndroidSocketClient:1.4.1'
     implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.25'
+//    implementation 'com.tonystark.android:socket:2.0.0-beta'
 }

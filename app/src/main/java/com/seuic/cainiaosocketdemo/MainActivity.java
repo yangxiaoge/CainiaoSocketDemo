@@ -81,15 +81,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     BufferedReader bf = new BufferedReader(isr);
                     String line = null;
                     int count;
-                    byte[] bb = new byte[3000];
                     while (true){
 //                        byte[] bytes = bf.readLine().getBytes();
 //                        System.out.println("bytes = "+ BytesHexStrTranslate.bytesToHexFun1(bytes));
                         //parseData(new ByteArrayInputStream(bytes));
+                        byte[] tmp=new byte[18];
+                        count = is.read(tmp); //将输入流写入tmp字节数组，默认18长度
 
-                        byte[] tmp=new byte[3000];
-                        count = is.read(tmp);
-                        System.err.println("count"+count);
+                        Log.i("ssss头",Data_syn.bytesToHexString(tmp,2));
+                        if (Data_syn.bytesToHexString(tmp,2).equals("FEFE")){
+                            Log.e("FEFE","FEFE");
+                            //break;
+                        }
+
+                        //Log.i("ssss","111111111111111111111111");
+                        Log.i("ssss","count"+count);
+                        Log.i("ssss","tmp:  tmp.length = "+tmp.length +" tmp = "+BytesHexStrTranslate.bytesToHexFun1(tmp));
                         parseData(is);
                     }
                 } catch (IOException e) {
@@ -110,14 +117,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         while (true) {
             try {
                 received = netWStream.read(buf, 0, 1);
-                System.out.println("buf[0] = "+buf[0]);
+                //System.out.println("buf[0] = "+buf[0]);
             } catch (Exception ex) {
                 Log.i("Socket", "Read Exception " + ex.getMessage());
                 xdata.error_msg = "Read Exception " + ex.getMessage();
                 return false;
             }
             if (received > 0) {
-                System.out.println("buf[0] = "+buf[0]);
+                //System.out.println("buf[0] = "+buf[0]);
                 if (buf[0] == -2) {
 //                if (buf[0] == 0xFE) {
 //                if (buf[0] == 254) {
@@ -138,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        Log.i("ssss", "开始取条码长度");
         //取条码长度
         byte[] temp_revbuf = new byte[18];
         int received_Total = 0;
@@ -175,6 +183,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return false;
         }
 
+        Log.i("ssss", "开始取条码");
         //读条码
         byte[] bufbarcodelen = new byte[4];
         // TODO: 2018/6/1  Buffer.BlockCopy什么意思
@@ -223,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        Log.i("ssss", "取图片名称长度");
         //取图片名称长度
         buf = new byte[4];
         temp_revbuf = new byte[4];
@@ -260,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return false;
         }
 
+        Log.i("ssss", "读图片名称");
         //读图片名称
 //        int imagenamelen = Convert.ToInt32(ConvertByteArrayToLong(buf));
         int imagenamelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
@@ -304,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        Log.i("ssss", "取图片长度");
         //region 取图片长度
         buf = new byte[4];
         temp_revbuf = new byte[4];
@@ -341,6 +353,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return false;
         }
 
+        Log.i("ssss", "读图片数据");
         //读图片数据
 //        long imagedatalen = Convert.ToInt32(ConvertByteArrayToLong(buf));
         int imagedatalen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
@@ -383,6 +396,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        Log.i("ssss", "取扫描时间，校验码");
         //取扫描时间，校验码
         buf = new byte[19];
         temp_revbuf = new byte[19];

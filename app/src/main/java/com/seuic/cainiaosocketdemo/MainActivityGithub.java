@@ -1,7 +1,6 @@
 package com.seuic.cainiaosocketdemo;
 
 import android.app.ProgressDialog;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -79,6 +78,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 //        socketClient = new SocketClient("192.168.1.117", 20006);
         socketClient = new SocketClient("192.168.80.80", 7777);
 //        socketClient = new SocketClient("192.168.1.117", 20006);
+
         socketClient.registerSocketDelegate(new SocketClient.SocketDelegate() {
             @Override
             public void onConnected(SocketClient client) {
@@ -94,6 +94,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 
             @Override
             public void onDisconnected(SocketClient client) {
+                Log.i("Server", "onDisconnected超时timeout: = " +    client.getHeartBeatInterval() + " "+client.getState()+"");
                 //连接终端，可以给一些页面提示
                 if (progressDialog.isShowing()) {
                     progressDialog.dismiss();
@@ -101,6 +102,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
                 }
                 String error = client.getCharsetName();
                 Log.i("Server", "onDisconnected超时timeout:" + error);
+                forIndex = 0;
 
                 // 可在此实现自动重连
                 try {
@@ -115,60 +117,82 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 //                String responseMsg = responsePacket.getMessage();
                 byte[] datas = responsePacket.getData();
                 System.out.println(new String(datas, Charset.forName("utf-8")));
+                Log.i("Socket", "响应字节：datas.size = " + datas.length);
                 Log.i("Socket", "响应字节：" + BytesHexStrTranslate.bytesToHexFun1(datas));
                 ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(datas);
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(byteArrayInputStream);
+
+                //如果是服务器返回“ok”，不需要解析
+                if(datas.length==2&&BytesHexStrTranslate.bytesToHexFun1(datas).equals("6f6b")){
+                    return;
+                }
                 //解析字节流数据
-                parseData(byteArrayInputStream);
+                parseData(datas.length, byteArrayInputStream);
+
+                byte data = datas[0];
+                byte[] bytes = new byte[1];
+                bytes[0] = data;
+                if (BytesHexStrTranslate.bytesToHexFun1(bytes).equals("fe")) {
+
+                }
             }
         });
 
         socketClient.setConnectionTimeout(1000 * 15);
-//        socketClient.setHeartBeatInterval(1000);
+        socketClient.setHeartBeatInterval(1000);
 //        socketClient.disableHeartBeat(); //禁止心跳,否则后台一直返回ok成功提示
 //        socketClient.setRemoteNoReplyAliveTimeout(1000 * 60); //远程端在一定时间间隔没有消息后自动断开
         socketClient.setCharsetName("UTF-8");
         socketClient.connect();
     }
 
-    private boolean parseData(ByteArrayInputStream netWStream) {
+    private int forIndex = 0; //第一次取到了数据头并且是FEFE
+
+    private boolean parseData(int dataLength, ByteArrayInputStream netWStream) {
         xdata = new XData();
         byte[] buf = new byte[18];
+
         // check StartCode 检测数据包头0xFEFE
         int goodIdx = 0;
         int received = -1;
         int time_count = 100;
-        System.out.println("buf[0]1 = "+buf[0]);
-        while (true) {
-            try {
-                received = netWStream.read(buf, 0, 1);
-                System.out.println("buf[0]2 = "+buf[0]);
+        System.out.println("buf[0]1 = " + buf[0]);
+        System.out.println("buf[0]1 dataLength= " + dataLength);
+       if (forIndex==0 && dataLength == 16){ //只有第一次判断头FEFE需要执行这个while
+           while (true) {
+               try {
+                   received = netWStream.read(buf, 0, 1);
+                   //System.out.println("buf[0]2 = "+buf[0]);
 //                System.out.println("buf[0]2 new buf = "+BytesHexStrTranslate.bytesToHexFun1(buf));
-                System.out.println("buf[0]2 new buf = "+BytesHexStrTranslate.bytesToHexFun2(buf));
-            } catch (Exception ex) {
-                Log.i("Socket", "Read Exception " + ex.getMessage());
-                xdata.error_msg = "Read Exception " + ex.getMessage();
-                return false;
-            }
-            if (received > 0) {
-                if (buf[0] == -2) {
+                   //System.out.println("buf[0]2 new buf = " + BytesHexStrTranslate.bytesToHexFun2(buf));
+               } catch (Exception ex) {
+                   Log.i("Socket", "Read Exception " + ex.getMessage());
+                   xdata.error_msg = "Read Exception " + ex.getMessage();
+                   return false;
+               }
+               if (received > 0) {
+                   if (buf[0] == -2) {
 //                if (buf[0] == 254) {
-                    if (goodIdx == 1) {
-                        break;
-                    } else {
-                        goodIdx++;
-                    }
-                } else {
-                    goodIdx = 0;
-                }
-            }
-            //Thread.Sleep(10);
-            if (time_count-- <= 0) {
-                xdata.error_msg = "Read 0xFE time out ";
-                Log.i("Socket", "Read 0xFE time out");
-                return false;
-            }
-        }
+                       if (goodIdx == 1) {
+                           forIndex = 1;
+                           break;
+                       } else {
+                           goodIdx++;
+                       }
+                   } else {
+                       goodIdx = 0;
+                   }
+               }
+               //Thread.Sleep(10);
+               if (time_count-- <= 0) {
+                   xdata.error_msg = "Read 0xFE time out ";
+                   Log.i("Socket", "Read 0xFE time out");
+                   return false;
+               }
+           }
+       }
+
+        if (dataLength == 16) return true;//第一次的数据长度是16，执行到这里说明数据头已取到,但是请求头数据不要往下解析
 
         //取条码长度
         byte[] temp_revbuf = new byte[18];
@@ -212,8 +236,9 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         //Buffer.BlockCopy(buf, 14, bufbarcodelen, 0, 4);
         System.arraycopy(buf, 14, bufbarcodelen, 0, 4);
 //        int barcodelen = Convert.ToInt32(ConvertByteArrayToLong(bufbarcodelen));
-        int barcodelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
-
+//        int barcodelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
+        int barcodelen = BytesHexStrTranslate.bytes2int(buf);
+        Log.i("Socket", "读条码 barcodelen = " + barcodelen);
         if (barcodelen > 0) {
             buf = new byte[barcodelen];
             temp_revbuf = new byte[barcodelen];
@@ -290,12 +315,16 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
             xdata.error_msg = "received_Total != 4";
             return false;
         }
+        Log.i("Socket", "图片名称长度 = " + received_Total);
 
+        Log.i("Socket", "读图片名称");
         //读图片名称
 //        int imagenamelen = Convert.ToInt32(ConvertByteArrayToLong(buf));
-        int imagenamelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
-
-        if (imagenamelen > 0) {
+//        int imagenamelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
+        int imagenamelen =  BytesHexStrTranslate.bytes2int(buf);
+        Log.i("Socket", "读图片名称 imagenamelen = "+imagenamelen);
+        // TODO: 2018/6/4 这里会内存溢出
+        /*if (imagenamelen > 0) {
             buf = new byte[imagenamelen];
             temp_revbuf = new byte[imagenamelen];
             received_Total = 0;
@@ -333,7 +362,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
                 Log.i("Socket", "string utf-8 解析图片名称失败 ");
                 e.printStackTrace();
             }
-        }
+        }*/
 
         //region 取图片长度
         buf = new byte[4];
@@ -374,9 +403,11 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 
         //读图片数据
 //        long imagedatalen = Convert.ToInt32(ConvertByteArrayToLong(buf));
-        int imagedatalen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
-
-        if (imagedatalen > 0) {
+//        int imagedatalen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
+        int imagedatalen = BytesHexStrTranslate.bytes2int(buf);
+        Log.i("Socket", "读图片数据 imagedatalen = "+imagedatalen);
+        // TODO: 2018/6/4 内存溢出 byte长度太长了
+        /*if (imagedatalen > 0) {
             buf = new byte[imagedatalen];
             temp_revbuf = new byte[imagedatalen];
             received_Total = 0;
@@ -412,7 +443,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
             if (buf.length != 0) {
                 xdata.bitmap = BitmapFactory.decodeByteArray(buf, 0, buf.length);
             }
-        }
+        }*/
 
         //取扫描时间，校验码
         buf = new byte[19];
@@ -498,7 +529,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
                     String echo = buf.readLine();
                     System.out.println(echo);
                     System.out.println(BytesHexStrTranslate.bytesToHexFun1(echo.getBytes()));
-                    parseData(new ByteArrayInputStream(echo.getBytes()));
+                    parseData(111111, new ByteArrayInputStream(echo.getBytes()));
                 } catch (SocketTimeoutException e) {
                     System.out.println("Time out, No response");
                 }

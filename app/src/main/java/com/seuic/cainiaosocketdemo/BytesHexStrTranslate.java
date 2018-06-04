@@ -92,6 +92,26 @@ public class BytesHexStrTranslate {
         return bytes;
     }
 
+    public static int byteArrayToInt(byte[] b) {
+        return   b[3] & 0xFF |
+                (b[2] & 0xFF) << 8 |
+                (b[1] & 0xFF) << 16 |
+                (b[0] & 0xFF) << 24;
+    }
+
+    // 高位在前，低位在后
+    public static int bytes2int(byte[] bytes){
+        int result = 0;
+        if(bytes.length == 4){
+            int a = (bytes[0] & 0xff) << 24;// 说明二
+            int b = (bytes[1] & 0xff) << 16;
+            int c = (bytes[2] & 0xff) << 8;
+            int d = (bytes[3] & 0xff);
+            result = a | b | c | d;
+        }
+        return result;
+    }
+
     public static void main(String[] args) throws Exception {
         byte[] bytes = "测试".getBytes("utf-8");
         System.out.println("字节数组为：" + Arrays.toString(bytes));
