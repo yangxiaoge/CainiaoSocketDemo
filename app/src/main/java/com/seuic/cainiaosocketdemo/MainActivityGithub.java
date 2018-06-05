@@ -13,17 +13,13 @@ import android.widget.Toast;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
+import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
 import com.vilyever.socketclient.SocketClient;
 import com.vilyever.socketclient.SocketResponsePacket;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -94,7 +90,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 
             @Override
             public void onDisconnected(SocketClient client) {
-                Log.i("Server", "onDisconnected超时timeout: = " +    client.getHeartBeatInterval() + " "+client.getState()+"");
+                Log.i("Server", "onDisconnected超时timeout: = " + client.getHeartBeatInterval() + " " + client.getState() + "");
                 //连接终端，可以给一些页面提示
                 if (progressDialog.isShowing()) {
                     progressDialog.dismiss();
@@ -123,10 +119,10 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(byteArrayInputStream);
 
                 //如果是服务器返回“ok”，不需要解析
-                if(datas.length==2&&BytesHexStrTranslate.bytesToHexFun1(datas).equals("6f6b")){
+                if (datas.length == 2 && BytesHexStrTranslate.bytesToHexFun1(datas).equals("6f6b")) {
                     return;
                 }
-                //解析字节流数据
+                //解析字节流数据,先注释掉
                 parseData(datas.length, byteArrayInputStream);
 
                 byte data = datas[0];
@@ -158,44 +154,52 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         int time_count = 100;
         System.out.println("buf[0]1 = " + buf[0]);
         System.out.println("buf[0]1 dataLength= " + dataLength);
-       if (forIndex==0 && dataLength == 16){ //只有第一次判断头FEFE需要执行这个while
-           while (true) {
-               try {
-                   received = netWStream.read(buf, 0, 1);
-                   //System.out.println("buf[0]2 = "+buf[0]);
+        if (forIndex == 0 && dataLength == 16) { //只有第一次判断头FEFE需要执行这个while
+            while (true) {
+                try {
+                    received = netWStream.read(buf, 0, 1);
+                    //System.out.println("buf[0]2 = "+buf[0]);
 //                System.out.println("buf[0]2 new buf = "+BytesHexStrTranslate.bytesToHexFun1(buf));
-                   //System.out.println("buf[0]2 new buf = " + BytesHexStrTranslate.bytesToHexFun2(buf));
-               } catch (Exception ex) {
-                   Log.i("Socket", "Read Exception " + ex.getMessage());
-                   xdata.error_msg = "Read Exception " + ex.getMessage();
-                   return false;
-               }
-               if (received > 0) {
-                   if (buf[0] == -2) {
+                    //System.out.println("buf[0]2 new buf = " + BytesHexStrTranslate.bytesToHexFun2(buf));
+                } catch (Exception ex) {
+                    Log.i("Socket", "Read Exception " + ex.getMessage());
+                    xdata.error_msg = "Read Exception " + ex.getMessage();
+                    return false;
+                }
+                if (received > 0) {
+                    if (buf[0] == -2) {
 //                if (buf[0] == 254) {
-                       if (goodIdx == 1) {
-                           forIndex = 1;
-                           break;
-                       } else {
-                           goodIdx++;
-                       }
-                   } else {
-                       goodIdx = 0;
-                   }
-               }
-               //Thread.Sleep(10);
-               if (time_count-- <= 0) {
-                   xdata.error_msg = "Read 0xFE time out ";
-                   Log.i("Socket", "Read 0xFE time out");
-                   return false;
-               }
-           }
-       }
+                        if (goodIdx == 1) {
+                            forIndex = 1;
+                            break;
+                        } else {
+                            goodIdx++;
+                        }
+                    } else {
+                        goodIdx = 0;
+                    }
+                }
+                //Thread.Sleep(10);
+                if (time_count-- <= 0) {
+                    xdata.error_msg = "Read 0xFE time out ";
+                    Log.i("Socket", "Read 0xFE time out");
+                    return false;
+                }
+            }
+        }
 
         if (dataLength == 16) return true;//第一次的数据长度是16，执行到这里说明数据头已取到,但是请求头数据不要往下解析
 
         //取条码长度
-        byte[] temp_revbuf = new byte[18];
+        byte[] temp_revbuf = new byte[4];
+        netWStream.read(temp_revbuf, 0, 4);
+        //条码内容byte长度（目前的是18）
+        int barcodeByteLen = BytesHexStrTranslate.bytes2int(temp_revbuf);
+        temp_revbuf = new byte[barcodeByteLen];
+        netWStream.read(temp_revbuf,4,barcodeByteLen);
+        Log.i("Socket", "图片名称为 = " + BytesHexStrTranslate.bytesToHexFun1(temp_revbuf));
+
+
         int received_Total = 0;
         int remain_length = buf.length;//已收文件头被覆盖
         time_count = 100;
@@ -321,8 +325,8 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         //读图片名称
 //        int imagenamelen = Convert.ToInt32(ConvertByteArrayToLong(buf));
 //        int imagenamelen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
-        int imagenamelen =  BytesHexStrTranslate.bytes2int(buf);
-        Log.i("Socket", "读图片名称 imagenamelen = "+imagenamelen);
+        int imagenamelen = BytesHexStrTranslate.bytes2int(buf);
+        Log.i("Socket", "读图片名称 imagenamelen = " + imagenamelen);
         // TODO: 2018/6/4 这里会内存溢出
         /*if (imagenamelen > 0) {
             buf = new byte[imagenamelen];
@@ -405,7 +409,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
 //        long imagedatalen = Convert.ToInt32(ConvertByteArrayToLong(buf));
 //        int imagedatalen = Integer.parseInt(String.valueOf(bytesToLong(buf)));
         int imagedatalen = BytesHexStrTranslate.bytes2int(buf);
-        Log.i("Socket", "读图片数据 imagedatalen = "+imagedatalen);
+        Log.i("Socket", "读图片数据 imagedatalen = " + imagedatalen);
         // TODO: 2018/6/4 内存溢出 byte长度太长了
         /*if (imagedatalen > 0) {
             buf = new byte[imagedatalen];
@@ -493,12 +497,6 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
             case R.id.start_socket:
                 //开启socket连接
                 socketClient();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-//                        originSocket();
-                    }
-                }).start();
                 break;
             case R.id.stop_socket:
                 //关闭socket连接
@@ -513,7 +511,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         }
     }
 
-    private void originSocket() {
+/*    private void originSocket() {
         // 客户端请求与本机在 20006 端口建立 TCP 连接
 //        Socket client = new Socket("127.0.0.1", 20006);
         Socket client = null;
@@ -542,7 +540,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     @Override
     protected void onDestroy() {

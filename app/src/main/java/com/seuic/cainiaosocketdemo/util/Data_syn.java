@@ -1,4 +1,4 @@
-package com.seuic.cainiaosocketdemo;
+package com.seuic.cainiaosocketdemo.util;
 public class Data_syn {
     // 将字节数组转化为16进制字符串，确定长度
     public static String bytesToHexString(byte[] bytes, int a) {
