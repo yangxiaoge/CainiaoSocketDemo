@@ -72,7 +72,7 @@ public class MainActivityGithub extends AppCompatActivity implements View.OnClic
         progressDialog.setCancelable(false);
         progressDialog.show();
 //        socketClient = new SocketClient("192.168.1.117", 20006);
-        socketClient = new SocketClient("192.168.80.80", 7777);
+        socketClient = new SocketClient("169.254.106.114", 7777);
 //        socketClient = new SocketClient("192.168.1.117", 20006);
 
         socketClient.registerSocketDelegate(new SocketClient.SocketDelegate() {

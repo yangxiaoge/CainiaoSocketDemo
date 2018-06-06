@@ -146,8 +146,43 @@ public class BytesHexStrTranslate {
         lengthTemp[1] = 0x00;
         lengthTemp[2] = 0x00;
         lengthTemp[3] = 0x12;
+        System.out.println("codeBytes = " + Arrays.toString(lengthTemp));
+
         //条码长度
         int codeLength = BytesHexStrTranslate.bytes2int(lengthTemp);
+
+        /*lengthTemp[0] = 0;
+        lengthTemp[1] = 0;
+        lengthTemp[2] = 0;
+        lengthTemp[3] = 12;*/
+
+        String s = Data_syn.bytesToHexString(lengthTemp, 4);
+
+        byte[] temp1 = new byte[4];
+
+        temp1[0] = 0;
+        temp1[1] = 0;
+        temp1[2] = 0;
+        temp1[3] = 12;
+
+        //buf = temp1;
+        int datalength = BytesHexStrTranslate.bytes2int(temp1);
+        System.out.println("datalength = "+datalength);
+
+
+        byte[] aad = {56, 45, 33, 38};
+        String s1 = BytesHexStrTranslate.bytesToHexFun3(aad);
+
+
+        byte[] buf = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        byte[] tp = new byte[4];
+        System.arraycopy(buf, 6, tp, 0, 4);
+
+        System.out.println(Arrays.toString(tp));
+
+        byte[] bufasd = new byte[5013504];
+
+        String ss = new String(buf,"utf-8");
     }
 
 
