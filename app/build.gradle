@@ -34,4 +34,9 @@ dependencies {
     implementation 'com.github.vilyever:AndroidSocketClient:1.4.1'
     implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.25'
 //    implementation 'com.tonystark.android:socket:2.0.0-beta'
+
+    implementation 'com.github.bumptech.glide:glide:3.5.2'
+    //图片压缩
+    implementation 'top.zibin:Luban:1.1.2'
+//    annotationProcessor 'com.github.bumptech.glide:compiler:4.6.1'
 }
