@@ -1,10 +1,14 @@
 package com.seuic.cainiaosocketdemo;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,6 +23,7 @@ import com.bumptech.glide.Glide;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
+import com.seuic.cainiaosocketdemo.util.Constants;
 import com.seuic.cainiaosocketdemo.util.Data_syn;
 import com.vilyever.socketclient.SocketClient;
 
@@ -27,10 +32,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -47,12 +54,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private List<CodeItem> data;
     private XData xdata = new XData();
     private Socket socket;
-    private InputStream is;
+    private InputStream inputStream;
+    private boolean isEnableDeal = true;//默认可以解析
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sharedPreferences = getSharedPreferences(Constants.SPNAME, Context.MODE_PRIVATE);
         progressDialog = new ProgressDialog(this);
         codeListRV = findViewById(R.id.id_recyclerview);
         mImageview = findViewById(R.id.current_imageview);
@@ -61,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.start_socket).setOnClickListener(this);
         findViewById(R.id.clear_data).setOnClickListener(this);
         findViewById(R.id.stop_socket).setOnClickListener(this);
+        findViewById(R.id.imageButton).setOnClickListener(this);
         initRV();
     }
 
@@ -75,60 +86,117 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void socketClient() {
         progressDialog.setTitle("启动中");
         progressDialog.setCancelable(false);
-        progressDialog.show();
-        new Thread(new Runnable() {
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    socket = new Socket("192.168.80.64", 7777);
-                    is = socket.getInputStream();
-                    toast("连接成功");
-                    while (!MainActivity.this.isFinishing()) {
-                        progressDialog.dismiss();
-                        boolean b = dealWithData(is);
-                        if (b) {
-                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata.imgname);
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Log.e("socket", "data size1 =  " + data.size());
-                                    //UI线程刷新条码区域
-                                    data.add(new CodeItem(xdata.barcode));
-                                    //codeListAdapter.addData(data);
-                                    codeListAdapter.notifyDataSetChanged();
-                                    Log.e("socket", "data size2 =  " + data.size());
-                                    //赋值
-                                    currentCode.setText(xdata.barcode);
-                                    countCode.setText(String.valueOf(data.size()));
-                                }
-                            });
+                progressDialog.show();
+            }
+        });
 
-                        } else {
-                            //System.out.println("失败啦失败啦失败啦 xdata.imgname = " + xdata.imgname);
-                        }
-                    }
-                    //关闭流
-                    is.close();
-                    socket.close();
-                } catch (SocketException e) {
-                    Log.e("socket", "socket连接失败1 e = " + e.getMessage());
-                } catch (SocketTimeoutException e) {
-                    Log.e("socket", "socket连接超时 e = " + e.getMessage());
-                    toast("连接超时");
-                } catch (IOException e) {
-                    Log.e("socket", "socket连接失败3 e = " + e.getMessage());
-                    e.printStackTrace();
-                } finally {
-                    if (progressDialog.isShowing()) {
+        while (socket == null) {
+            try {
+                socket = new Socket(sharedPreferences.getString(Constants.IP,"192.168.80.64"),
+                        Integer.parseInt(sharedPreferences.getString(Constants.PORT,"7777")));
+                toast("连接成功");
+                isEnableDeal = true;
+            } catch (IOException e) {
+                isEnableDeal = false;
+                SystemClock.sleep(1000);
+                System.out.println("（暂时没有处理）连接服务端失败，重试中retry...");
+
+                if (e instanceof SocketTimeoutException) {
+                    toast("连接超时，正在重连");
+                    releaseSocket();
+                } else if (e instanceof NoRouteToHostException) {
+                    toast("该地址不存在，请检查");
+                    //stopSelf();
+                } else if (e instanceof ConnectException) {
+                    toast("连接异常或被拒绝，请检查");
+                    //stopSelf();
+                    releaseSocket();
+                }
+
+            } finally {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
                         progressDialog.dismiss();
+                    }
+                });
+            }
+
+            //接受服务器数据
+            try {
+                if (socket != null) {
+                    //toast(socket.isConnected() + "");
+                }
+                if (socket == null || !socket.isConnected()) return;
+                inputStream = socket.getInputStream();
+//                while (!MainActivity.this.isFinishing()) {
+                while (isEnableDeal) {
+                    boolean getSuccess = dealWithData(inputStream);
+                    if (getSuccess) {
+                        System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata.imgname);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket", "data size1 =  " + data.size());
+                                //UI线程刷新条码区域
+                                data.add(new CodeItem(xdata.barcode));
+                                //codeListAdapter.addData(data);
+                                codeListAdapter.notifyDataSetChanged();
+                                Log.e("socket", "data size2 =  " + data.size());
+                                //赋值
+                                currentCode.setText(xdata.barcode);
+                                countCode.setText(String.valueOf(data.size()));
+                            }
+                        });
                     }
                 }
+                inputStream.close();
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }).start();
+
+        }
+    }
+
+    /*释放资源*/
+    private void releaseSocket() {
+
+        if (inputStream != null) {
+            try {
+                inputStream.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream = null;
+        }
+
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException e) {
+            }
+            socket = null;
+        }
+
+        /*重新初始化socket*/
+//        if (isReConnect) {
+        socketClient();
+//        }
+
     }
 
     private boolean dealWithData(InputStream is) {
-        Log.e("socket","dealWithData开始解析");
+        try {
+            Log.e("socket", "dealWithData开始解析 is.available() " + is.available());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         byte[] buf = new byte[16]; //数据头->条码长度
         int count = 0;
         try {
@@ -395,7 +463,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             //xdata.bitmap = imgBitmap;
-            saveImage(xdata.scantime, imgBitmap);
+            saveImage(xdata.imgname, imgBitmap);
             return true;
 
         } catch (IOException e) {
@@ -411,8 +479,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param bmp
      */
     private void saveImage(String imgName, Bitmap bmp) {
-        String fileName = imgName + ".jpg";
-        String path = Environment.getExternalStorageDirectory() + File.separator + "CiaoNiaoBarCode";
+        Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
+        String year = calendar.get(Calendar.YEAR) + "";
+        String month = calendar.get(Calendar.MONTH) + 1 + "";
+        String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
+        String hour = calendar.get(Calendar.HOUR_OF_DAY) + "";
+//        String minute=calendar.get(Calendar.MINUTE)+"";
+//        String second=calendar.get(Calendar.SECOND)+"";
+//        String time=year+month+day+hour+minute+second;
+
+        String fileName = imgName;
+        String path = Environment.getExternalStorageDirectory() + File.separator + "CiaoNiaoBarCode" +
+                File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
         File dir = new File(path);
         if (!dir.exists()) {
             dir.mkdirs();
@@ -445,31 +523,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start_socket:
+                if (socket != null && socket.isConnected()) return;
                 //开启socket连接
-                socketClient();
-//                String fileName = "0001.jpg";
-//                File file = new File(Environment.getExternalStorageDirectory(), fileName);
-//                Glide.with(MainActivity.this).load(file).into(mImageview);
+                new Thread() {
+                    @Override
+                    public void run() {
+                        socketClient();
+                    }
+                }.start();
                 break;
             case R.id.stop_socket:
                 //关闭socket连接
                 if (socket != null && socket.isConnected()) {
                     try {
-                        is.close();
+                        isEnableDeal = false;
+                        if (inputStream != null) {
+                            inputStream.close();
+                        }
+                        socket.shutdownInput();
                         socket.close();
                         Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                     } catch (IOException e) {
-                        Toast.makeText(this, "关闭失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
                 break;
             case R.id.clear_data:
                 currentCode.setText("");
-                countCode.setText("");
+                countCode.setText("0");
 
                 data.clear();
                 codeListAdapter.notifyDataSetChanged();
+                break;
+            case R.id.imageButton:
+                startActivity(new Intent(this,SettingActivity.class));
                 break;
             default:
         }
@@ -492,8 +580,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        isEnableDeal = false;
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
+        }
+        if (socket != null) {
+            try {
+                socket.shutdownInput();
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

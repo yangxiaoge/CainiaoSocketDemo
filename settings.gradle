@@ -1,1 +1,1 @@
-include ':app', ':toneysocket', ':androidartsocket'
+include ':app'
