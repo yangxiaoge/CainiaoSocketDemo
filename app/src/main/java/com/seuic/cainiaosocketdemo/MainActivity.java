@@ -60,7 +60,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private InputStream inputStream2;
     private InputStream inputStream3;
     private boolean isEnableDeal = true;//默认可以解析
+    private boolean isEnableDea2 = true;//默认可以解析
+    private boolean isEnableDea3 = true;//默认可以解析
     private SharedPreferences sharedPreferences;
+    private String ips = "192.168.80.64,192.168.80.64,192.168.80.64"; //169.254.173.207,169.254.222.233
+    private String[] ipArray;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -87,39 +91,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    /**
-     * @param socketIndex 三个socket判断标记
-     */
-    private void socketClient(int socketIndex) {
-        progressDialog.setTitle("启动中");
-        progressDialog.setCancelable(false);
+    private void socketClient() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (!progressDialog.isShowing()) {
-                    progressDialog.show();
-                }
+                progressDialog.setTitle("启动中");
+                progressDialog.setCancelable(true);
+                progressDialog.show();
             }
         });
-
-        while (socket1 == null || socket2 == null || socket3 == null) {
+        Log.e("socket1", "socketClient1");
+        while (socket1 == null) {
             try {
-                String ips = sharedPreferences.getString(Constants.IP, "192.168.80.64");
-                String[] ipArray = ips.split("|");
-                if (ipArray.length != 3) {
-                    toast("请设置正确的ip格式！");
-                    return;
-                }
-                if (socketIndex == 1) {
-                    socket1 = new Socket(ipArray[0],
-                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
-                } else if (socketIndex == 2) {
-                    socket2 = new Socket(ipArray[1],
-                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
-                } else if (socketIndex == 3) {
-                    socket3 = new Socket(ipArray[2],
-                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
-                }
+                socket1 = new Socket(ipArray[0],
+                        Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
                 toast("连接成功");
                 isEnableDeal = true;
             } catch (IOException e) {
@@ -129,14 +114,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if (e instanceof SocketTimeoutException) {
                     toast("连接超时，正在重连");
-                    releaseSocket1();
+                    releaseSocket();
                 } else if (e instanceof NoRouteToHostException) {
                     toast("该地址不存在，请检查");
                     //stopSelf();
                 } else if (e instanceof ConnectException) {
                     toast("连接异常或被拒绝，请检查");
                     //stopSelf();
-                    releaseSocket1();
+                    releaseSocket();
                 }
 
             } finally {
@@ -150,67 +135,162 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //接受服务器数据
             try {
-                //if (socket1 == null || !socket1.isConnected()) return;
+                if (socket1 == null || !socket1.isConnected()) return;
+                inputStream1 = socket1.getInputStream();
                 while (isEnableDeal) {
-                    Log.e("socket1", "socketIndex  = " + socketIndex);
-                    if (socketIndex == 1) {
-                        inputStream1 = socket1.getInputStream();
-                        boolean getSuccess = dealWithData(inputStream1, xdata1);
-                        if (getSuccess) {
-                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata1.imgname);
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    codeListUpdate(xdata1.barcode);
-                                }
-                            });
-                        }
-
-                    } else if (socketIndex == 2) {
-                        inputStream2 = socket2.getInputStream();
-                        boolean getSuccess = dealWithData(inputStream2, xdata2);
-                        if (getSuccess) {
-                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata2.imgname);
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    codeListUpdate(xdata2.barcode);
-                                }
-                            });
-                        }
-
-                    } else if (socketIndex == 3) {
-                        inputStream3 = socket3.getInputStream();
-                        boolean getSuccess = dealWithData(inputStream3, xdata3);
-                        if (getSuccess) {
-                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata3.imgname);
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    codeListUpdate(xdata3.barcode);
-                                }
-                            });
-                        }
+                    boolean getSuccess = dealWithData(inputStream1, xdata1);
+                    if (getSuccess) {
+                        System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata1.imgname = " + xdata1.imgname);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket1", "data size1 =  " + data.size());
+                                //UI线程刷新条码区域
+                                codeListUpdate(xdata1.barcode);
+                            }
+                        });
                     }
                 }
-
                 inputStream1.close();
                 socket1.close();
-                inputStream2.close();
-                socket2.close();
-                inputStream3.close();
-                socket3.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
         }
     }
 
+    private void socketClient2() {
+        Log.e("socket2", "socketClient2");
+        while (socket2 == null) {
+            try {
+                socket2 = new Socket(ipArray[1],
+                        Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
+                toast("连接成功");
+                isEnableDea2 = true;
+            } catch (IOException e) {
+                isEnableDea2 = false;
+                SystemClock.sleep(1000);
+                System.out.println("（暂时没有处理）连接服务端失败，重试中retry...");
+
+                if (e instanceof SocketTimeoutException) {
+                    toast("连接超时，正在重连");
+                    releaseSocket2();
+                } else if (e instanceof NoRouteToHostException) {
+                    toast("该地址不存在，请检查");
+                    //stopSelf();
+                } else if (e instanceof ConnectException) {
+                    toast("连接异常或被拒绝，请检查");
+                    //stopSelf();
+                    releaseSocket2();
+                }
+
+            } finally {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.dismiss();
+                    }
+                });
+            }
+
+            //接受服务器数据
+            try {
+                if (socket2 == null || !socket2.isConnected()) return;
+                inputStream2 = socket2.getInputStream();
+                while (isEnableDea2) {
+                    boolean getSuccess = dealWithData2(inputStream2, xdata2);
+                    if (getSuccess) {
+                        System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata2.imgname = " + xdata2.imgname);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket1", "data size1 =  " + data.size());
+                                //UI线程刷新条码区域
+                                codeListUpdate(xdata2.barcode);
+                            }
+                        });
+                    }
+                }
+                inputStream2.close();
+                socket2.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void socketClient3() {
+        Log.e("socket3", "socketClient3");
+        while (socket3 == null) {
+            try {
+                socket3 = new Socket(ipArray[2],
+                        Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
+                toast("连接成功");
+                isEnableDeal = true;
+            } catch (IOException e) {
+                isEnableDeal = false;
+                SystemClock.sleep(1000);
+                System.out.println("（暂时没有处理）连接服务端失败，重试中retry...");
+
+                if (e instanceof SocketTimeoutException) {
+                    toast("连接超时，正在重连");
+                    releaseSocket3();
+                } else if (e instanceof NoRouteToHostException) {
+                    toast("该地址不存在，请检查");
+                    //stopSelf();
+                } else if (e instanceof ConnectException) {
+                    toast("连接异常或被拒绝，请检查");
+                    //stopSelf();
+                    releaseSocket3();
+                }
+
+            } finally {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.dismiss();
+                    }
+                });
+            }
+            //接受服务器数据
+            try {
+                if (socket3 == null || !socket3.isConnected()) return;
+                inputStream3 = socket3.getInputStream();
+                while (isEnableDea3) {
+                    boolean getSuccess = dealWithData3(inputStream3, xdata3);
+                    if (getSuccess) {
+                        System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata3.imgname = " + xdata3.imgname);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket1", "data size1 =  " + data.size());
+                                //UI线程刷新条码区域
+                                codeListUpdate(xdata3.barcode);
+                            }
+                        });
+                    }
+                }
+                inputStream3.close();
+                socket3.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    /**
+     * 更新数据
+     *
+     * @param barcode
+     */
     private void codeListUpdate(String barcode) {
         Log.e("socket1", "data size1 =  " + data.size());
         //UI线程刷新条码区域,去重
-        if (!data.contains(barcode)) {
+//        if (!data.contains(barcode)) {
+        if (true) {
             data.add(barcode);
             codeListAdapter.notifyDataSetChanged();
         }
@@ -221,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /*释放资源*/
-    private void releaseSocket1() {
+    private void releaseSocket() {
 
         if (inputStream1 != null) {
             try {
@@ -232,6 +312,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             inputStream1 = null;
         }
+
+        if (socket1 != null) {
+            try {
+                socket1.close();
+            } catch (IOException e) {
+            }
+            socket1 = null;
+        }
+        socketClient();
+    }
+
+    private void releaseSocket2() {
+
         if (inputStream2 != null) {
             try {
                 inputStream2.close();
@@ -241,6 +334,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             inputStream2 = null;
         }
+
+        if (socket2 != null) {
+            try {
+                socket2.close();
+            } catch (IOException e) {
+            }
+            socket2 = null;
+        }
+        socketClient2();
+    }
+
+    private void releaseSocket3() {
+
         if (inputStream3 != null) {
             try {
                 inputStream3.close();
@@ -251,20 +357,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             inputStream3 = null;
         }
 
-        if (socket1 != null) {
-            try {
-                socket1.close();
-            } catch (IOException e) {
-            }
-            socket1 = null;
-        }
-        if (socket2 != null) {
-            try {
-                socket2.close();
-            } catch (IOException e) {
-            }
-            socket2 = null;
-        }
         if (socket3 != null) {
             try {
                 socket3.close();
@@ -272,31 +364,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             socket3 = null;
         }
-        /*重新初始化socket*/
-//        if (isReConnect) {
-        socketClient(1);
-        socketClient(2);
-        socketClient(3);
-//        }
-
+        socketClient3();
     }
 
-    private boolean dealWithData(InputStream is, XData xdata) {
+    private boolean dealWithData(InputStream is, XData xdata1) {
         try {
             Log.e("socket1", "dealWithData开始解析 is.available() " + is.available());
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        byte[] buf = new byte[16]; //数据头->条码长度
-        int count = 0;
         try {
             //第一步
-            count = is.read(buf, 0, 16); //将输入流写入tmp字节数组,先取20长度
-            System.out.println("文件头：" + BytesHexStrTranslate.bytesToHexFun1(buf));
-            //如果不是20，说明不是想要的数据，直接pass（可能是服务器的ok提示）
-            if (count != 16) {
-                return false;
+            byte[] buf = new byte[16]; //数据头->条码长度
+            byte[] temp = new byte[16];//读取codeLength长度字节
+            int count = 0;
+            int received_Total = 0;
+            int remain_length = temp.length;//已收文件头被覆盖
+            int time_count = 100;//超时次数
+            while (true) {
+                //循环读取18长度， 可能后台一次没有发足够数据
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        xdata1.error_msg = "Read 0xFEFE Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read barcode time out ");
+                    xdata1.error_msg = "Read barcode time out ";
+                    return false;
+                }
             }
             //数据头不匹配
             if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
@@ -304,10 +411,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return false;
             }
             Log.i("socket1", "读取数据头成功");
+            //读取机器序列号
+            byte[] deviceNum = new byte[12];
+            System.arraycopy(buf, 4, deviceNum, 0, 12);
+            //解析到的条码
+            xdata1.deviceNum = new String(deviceNum, "utf-8");
 
             //第二步，条码长度,4
             //12000000(服务器从高到低，需要转成00000012从低到高)
-            byte[] temp = new byte[4];
+            temp = new byte[4];
             count = is.read(temp, 0, 4);
             System.arraycopy(temp, 0, buf, 0, 4);
             if (count != 4) return false;
@@ -325,9 +437,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //564533383137313230303534362d312d312d
             buf = new byte[(int) codeLength];
             temp = new byte[(int) codeLength];//读取codeLength长度字节
-            int received_Total = 0;
-            int remain_length = temp.length;//已收文件头被覆盖
-            int time_count = 100;//超时次数
+            received_Total = 0;
+            remain_length = temp.length;//已收文件头被覆盖
+            time_count = 100;//超时次数
             while (true) {
                 //循环读取18长度， 可能后台一次没有发足够数据
                 if (remain_length > 0) {
@@ -338,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         remain_length -= count;
                     } catch (Exception ex) {
                         Log.e("socket1", "Read barcodelen Exception " + ex.toString());
-                        xdata.error_msg = "Read barcodelen Exception " + ex.toString();
+                        xdata1.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
@@ -348,15 +460,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
                     Log.e("socket1", "Read barcode time out ");
-                    xdata.error_msg = "Read barcode time out ";
+                    xdata1.error_msg = "Read barcode time out ";
                     return false;
                 }
 
                 //解析到的条码
-                xdata.barcode = new String(buf, "utf-8");
+                xdata1.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读取条码成功 barcode =" + xdata.barcode);
+            Log.i("socket1", "读取条码成功 barcode =" + xdata1.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -373,7 +485,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         remain_length -= count;
                     } catch (Exception ex) {
                         Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
-                        xdata.error_msg = "Read imagenamelen Exception " + ex.toString();
+                        xdata1.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
@@ -383,14 +495,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
                     Log.e("socket1", "Read imagenamelen time out ");
-                    xdata.error_msg = "Read imagenamelen time out ";
+                    xdata1.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
                 Log.e("socket1", "imagenamelen received_Total != 4");
-                xdata.error_msg = "imagenamelen received_Total != 4";
+                xdata1.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
             Log.i("socket1", "读图片名称长度成功");
@@ -424,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             remain_length -= count;
                         } catch (Exception ex) {
                             Log.e("socket1", "Read imagename Exception " + ex.toString());
-                            xdata.error_msg = "Read imagename Exception " + ex.toString();
+                            xdata1.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
@@ -434,15 +546,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
                         Log.e("socket1", "Read imagename time out ");
-                        xdata.error_msg = "Read imagename time out ";
+                        xdata1.error_msg = "Read imagename time out ";
                         return false;
                     }
                 }
                 //解析到的图片名称
-                xdata.imgname = new String(buf, "utf-8");
+                xdata1.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读图片名称成功 imgname = " + xdata.imgname);
+            Log.i("socket1", "读图片名称成功 imgname = " + xdata1.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -459,7 +571,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         remain_length -= count;
                     } catch (Exception ex) {
                         Log.e("socket1", "Read imagelen Exception " + ex.toString());
-                        xdata.error_msg = "Read imagelen Exception " + ex.toString();
+                        xdata1.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
@@ -469,14 +581,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
                     Log.e("socket1", "Read imagelen time out ");
-                    xdata.error_msg = "Read imagelen time out ";
+                    xdata1.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
                 Log.e("socket1", "imagelen received_Total != 4");
-                xdata.error_msg = "imagelen received_Total != 4";
+                xdata1.error_msg = "imagelen received_Total != 4";
                 return false;
             }
 
@@ -527,7 +639,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         remain_length -= count;
                     } catch (Exception ex) {
                         Log.e("socket1", "Read scantime Exception " + ex.toString());
-                        xdata.error_msg = "Read scantime Exception " + ex.toString();
+                        xdata1.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
@@ -537,24 +649,643 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
                     Log.e("socket1", "Read scantime time out ");
-                    xdata.error_msg = "Read scantime time out ";
+                    xdata1.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
                 Log.e("socket1", "scantime received_Total != 19");
-                xdata.error_msg = "scantime received_Total != 19";
+                xdata1.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
-            xdata.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据成功 scantime = " + xdata.scantime);
+            xdata1.scantime = new String(temp, "utf-8");
+            Log.i("socket1", "读图片数据成功 scantime = " + xdata1.scantime);
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
-            //xdata.bitmap = imgBitmap;
-            saveImage(xdata.imgname, imgBitmap);
+            Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
+            saveImage(calendar, xdata1.imgname, imgBitmap);
+            savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
+            return true;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean dealWithData2(InputStream is, XData xdata1) {
+        try {
+            Log.e("socket1", "dealWithData2开始解析 is.available() " + is.available());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            //第一步
+            byte[] buf = new byte[16]; //数据头->条码长度
+            byte[] temp = new byte[16];//读取codeLength长度字节
+            int count = 0;
+            int received_Total = 0;
+            int remain_length = temp.length;//已收文件头被覆盖
+            int time_count = 100;//超时次数
+            while (true) {
+                //循环读取18长度， 可能后台一次没有发足够数据
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        xdata1.error_msg = "Read 0xFEFE Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read barcode time out ");
+                    xdata1.error_msg = "Read barcode time out ";
+                    return false;
+                }
+            }
+            //数据头不匹配
+            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+                Log.e("socket1", "Read 0xFEFE time out");
+                return false;
+            }
+            Log.i("socket1", "读取数据头成功");
+            //读取机器序列号
+            byte[] deviceNum = new byte[12];
+            System.arraycopy(buf, 4, deviceNum, 0, 12);
+            //解析到的条码
+            xdata1.deviceNum = new String(deviceNum, "utf-8");
+
+            //第二步，条码长度,4
+            //12000000(服务器从高到低，需要转成00000012从低到高)
+            temp = new byte[4];
+            count = is.read(temp, 0, 4);
+            System.arraycopy(temp, 0, buf, 0, 4);
+            if (count != 4) return false;
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+
+            //条码长度
+            long codeLength = BytesHexStrTranslate.bytes2int(temp);
+            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度 = " + codeLength);
+
+            //第三步，取条码,上面已经算出长度(18)
+            //564533383137313230303534362d312d312d
+            buf = new byte[(int) codeLength];
+            temp = new byte[(int) codeLength];//读取codeLength长度字节
+            received_Total = 0;
+            remain_length = temp.length;//已收文件头被覆盖
+            time_count = 100;//超时次数
+            while (true) {
+                //循环读取18长度， 可能后台一次没有发足够数据
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, (int) codeLength);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read barcodelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "barcodelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read barcode time out ");
+                    xdata1.error_msg = "Read barcode time out ";
+                    return false;
+                }
+
+                //解析到的条码
+                xdata1.barcode = new String(buf, "utf-8");
+            }
+
+            Log.i("socket1", "读取条码成功 barcode =" + xdata1.barcode);
+
+            //第四步，读图片名称长度为4
+            buf = new byte[4];
+            temp = new byte[4];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read imagenamelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "imagenamelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read imagenamelen time out ");
+                    xdata1.error_msg = "Read imagenamelen time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "imagenamelen received_Total != 4");
+                xdata1.error_msg = "imagenamelen received_Total != 4";
+                return false;
+            }
+            Log.i("socket1", "读图片名称长度成功");
+
+            //读图片名称长度,长度为buf数组的十进制值
+            //2f000000(服务器从高到低，需要转成0000002f从低到高)
+            temp = new byte[4];
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+            //图片名称长度,
+            //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
+            long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
+            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+
+            //第五步，读图片名称
+            if (longLen > 0) {
+
+                buf = new byte[(int) longLen];
+                temp = new byte[(int) longLen];
+                received_Total = 0;
+                remain_length = buf.length;//已收文件头被覆盖
+                time_count = 100;
+                while (true) {
+                    if (remain_length > 0) {
+                        try {
+                            count = is.read(temp, 0, remain_length);
+                            System.arraycopy(temp, 0, buf, received_Total, count);
+                            received_Total += count;
+                            remain_length -= count;
+                        } catch (Exception ex) {
+                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            xdata1.error_msg = "Read imagename Exception " + ex.toString();
+                            return false;
+                        }
+                    } else {
+                        Log.e("socket1", "imagename received_Total == " + received_Total);
+                        break;
+                    }
+                    //Thread.Sleep(10);
+                    if (time_count-- <= 0) {
+                        Log.e("socket1", "Read imagename time out ");
+                        xdata1.error_msg = "Read imagename time out ";
+                        return false;
+                    }
+                }
+                //解析到的图片名称
+                xdata1.imgname = new String(buf, "utf-8");
+            }
+
+            Log.i("socket1", "读图片名称成功 imgname = " + xdata1.imgname);
+
+            //第六步，读取图片长度，4字节
+            buf = new byte[4];
+            temp = new byte[4];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read imagelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "imagelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.Sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read imagelen time out ");
+                    xdata1.error_msg = "Read imagelen time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "imagelen received_Total != 4");
+                xdata1.error_msg = "imagelen received_Total != 4";
+                return false;
+            }
+
+            //读图片数据长度为buf数组的十进制值
+            //2f000000(服务器从高到低，需要转成0000002f从低到高)
+            temp = new byte[4];
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+            //图片数据长度,字节数
+            int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+
+            //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
+            //int i = imagedatalen / 1024;
+            int imageCount = 0; //已接收的字节数
+            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while (imagedatalen - imageCount > 0) {
+                buf = new byte[1024 * 10];
+                int tempCount = 0;
+                if (imagedatalen - imageCount < 1024 * 10) {
+                    tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                } else {
+                    tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                }
+                imageCount += tempCount;
+                bos.write(buf, 0, tempCount);
+
+            }
+            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+
+            //第八步最后一步，取扫描时间，校验码，一共19字节
+            buf = new byte[19];
+            temp = new byte[19];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.out.println("取扫描时间1 count = " + count);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        System.out.println("取扫描时间1 = " + BytesHexStrTranslate.bytesToHexFun1(temp));
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        xdata1.error_msg = "Read scantime Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "scantime received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.Sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read scantime time out ");
+                    xdata1.error_msg = "Read scantime time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "scantime received_Total != 19");
+                xdata1.error_msg = "scantime received_Total != 19";
+                return false;
+            }
+            temp = new byte[17];
+            System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
+            xdata1.scantime = new String(temp, "utf-8");
+            Log.i("socket1", "读图片数据成功 scantime = " + xdata1.scantime);
+
+            final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
+            Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
+            saveImage(calendar, xdata1.imgname, imgBitmap);
+            savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
+            return true;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean dealWithData3(InputStream is, XData xdata1) {
+        try {
+            Log.e("socket1", "dealWithData3开始解析 is.available() " + is.available());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            //第一步
+            byte[] buf = new byte[16]; //数据头->条码长度
+            byte[] temp = new byte[16];//读取codeLength长度字节
+            int count = 0;
+            int received_Total = 0;
+            int remain_length = temp.length;//已收文件头被覆盖
+            int time_count = 100;//超时次数
+            while (true) {
+                //循环读取18长度， 可能后台一次没有发足够数据
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        xdata1.error_msg = "Read 0xFEFE Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read barcode time out ");
+                    xdata1.error_msg = "Read barcode time out ";
+                    return false;
+                }
+            }
+            //数据头不匹配
+            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+                Log.e("socket1", "Read 0xFEFE time out");
+                return false;
+            }
+            Log.i("socket1", "读取数据头成功");
+            //读取机器序列号
+            byte[] deviceNum = new byte[12];
+            System.arraycopy(buf, 4, deviceNum, 0, 12);
+            //解析到的条码
+            xdata1.deviceNum = new String(deviceNum, "utf-8");
+
+            //第二步，条码长度,4
+            //12000000(服务器从高到低，需要转成00000012从低到高)
+            temp = new byte[4];
+            count = is.read(temp, 0, 4);
+            System.arraycopy(temp, 0, buf, 0, 4);
+            if (count != 4) return false;
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+
+            //条码长度
+            long codeLength = BytesHexStrTranslate.bytes2int(temp);
+            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度 = " + codeLength);
+
+            //第三步，取条码,上面已经算出长度(18)
+            //564533383137313230303534362d312d312d
+            buf = new byte[(int) codeLength];
+            temp = new byte[(int) codeLength];//读取codeLength长度字节
+            received_Total = 0;
+            remain_length = temp.length;//已收文件头被覆盖
+            time_count = 100;//超时次数
+            while (true) {
+                //循环读取18长度， 可能后台一次没有发足够数据
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, (int) codeLength);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read barcodelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "barcodelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read barcode time out ");
+                    xdata1.error_msg = "Read barcode time out ";
+                    return false;
+                }
+
+                //解析到的条码
+                xdata1.barcode = new String(buf, "utf-8");
+            }
+
+            Log.i("socket1", "读取条码成功 barcode =" + xdata1.barcode);
+
+            //第四步，读图片名称长度为4
+            buf = new byte[4];
+            temp = new byte[4];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read imagenamelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "imagenamelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read imagenamelen time out ");
+                    xdata1.error_msg = "Read imagenamelen time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "imagenamelen received_Total != 4");
+                xdata1.error_msg = "imagenamelen received_Total != 4";
+                return false;
+            }
+            Log.i("socket1", "读图片名称长度成功");
+
+            //读图片名称长度,长度为buf数组的十进制值
+            //2f000000(服务器从高到低，需要转成0000002f从低到高)
+            temp = new byte[4];
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+            //图片名称长度,
+            //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
+            long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
+            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+
+            //第五步，读图片名称
+            if (longLen > 0) {
+
+                buf = new byte[(int) longLen];
+                temp = new byte[(int) longLen];
+                received_Total = 0;
+                remain_length = buf.length;//已收文件头被覆盖
+                time_count = 100;
+                while (true) {
+                    if (remain_length > 0) {
+                        try {
+                            count = is.read(temp, 0, remain_length);
+                            System.arraycopy(temp, 0, buf, received_Total, count);
+                            received_Total += count;
+                            remain_length -= count;
+                        } catch (Exception ex) {
+                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            xdata1.error_msg = "Read imagename Exception " + ex.toString();
+                            return false;
+                        }
+                    } else {
+                        Log.e("socket1", "imagename received_Total == " + received_Total);
+                        break;
+                    }
+                    //Thread.Sleep(10);
+                    if (time_count-- <= 0) {
+                        Log.e("socket1", "Read imagename time out ");
+                        xdata1.error_msg = "Read imagename time out ";
+                        return false;
+                    }
+                }
+                //解析到的图片名称
+                xdata1.imgname = new String(buf, "utf-8");
+            }
+
+            Log.i("socket1", "读图片名称成功 imgname = " + xdata1.imgname);
+
+            //第六步，读取图片长度，4字节
+            buf = new byte[4];
+            temp = new byte[4];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        xdata1.error_msg = "Read imagelen Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "imagelen received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.Sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read imagelen time out ");
+                    xdata1.error_msg = "Read imagelen time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "imagelen received_Total != 4");
+                xdata1.error_msg = "imagelen received_Total != 4";
+                return false;
+            }
+
+            //读图片数据长度为buf数组的十进制值
+            //2f000000(服务器从高到低，需要转成0000002f从低到高)
+            temp = new byte[4];
+            temp[0] = buf[3];
+            temp[1] = buf[2];
+            temp[2] = buf[1];
+            temp[3] = buf[0];
+            //图片数据长度,字节数
+            int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+
+            //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
+            //int i = imagedatalen / 1024;
+            int imageCount = 0; //已接收的字节数
+            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            while (imagedatalen - imageCount > 0) {
+                buf = new byte[1024 * 10];
+                int tempCount = 0;
+                if (imagedatalen - imageCount < 1024 * 10) {
+                    tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                } else {
+                    tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                }
+                imageCount += tempCount;
+                bos.write(buf, 0, tempCount);
+
+            }
+            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+
+            //第八步最后一步，取扫描时间，校验码，一共19字节
+            buf = new byte[19];
+            temp = new byte[19];
+            received_Total = 0;
+            remain_length = buf.length;//已收文件头被覆盖
+            time_count = 100;
+            while (true) {
+                if (remain_length > 0) {
+                    try {
+                        count = is.read(temp, 0, remain_length);
+                        System.out.println("取扫描时间1 count = " + count);
+                        System.arraycopy(temp, 0, buf, received_Total, count);
+                        System.out.println("取扫描时间1 = " + BytesHexStrTranslate.bytesToHexFun1(temp));
+                        received_Total += count;
+                        remain_length -= count;
+                    } catch (Exception ex) {
+                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        xdata1.error_msg = "Read scantime Exception " + ex.toString();
+                        return false;
+                    }
+                } else {
+                    Log.e("socket1", "scantime received_Total == " + received_Total);
+                    break;
+                }
+                //Thread.Sleep(10);
+                if (time_count-- <= 0) {
+                    Log.e("socket1", "Read scantime time out ");
+                    xdata1.error_msg = "Read scantime time out ";
+                    return false;
+                }
+            }
+
+            if (received_Total != buf.length) {
+                Log.e("socket1", "scantime received_Total != 19");
+                xdata1.error_msg = "scantime received_Total != 19";
+                return false;
+            }
+            temp = new byte[17];
+            System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
+            xdata1.scantime = new String(temp, "utf-8");
+            Log.i("socket1", "读图片数据成功 scantime = " + xdata1.scantime);
+
+            final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
+            Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
+            saveImage(calendar, xdata1.imgname, imgBitmap);
+            savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
             return true;
 
         } catch (IOException e) {
@@ -569,14 +1300,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param imgName
      * @param bmp
      */
-    private void saveImage(String imgName, Bitmap bmp) {
-        Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
+    private void saveImage(Calendar calendar, String imgName, Bitmap bmp) {
+
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
         String hour = calendar.get(Calendar.HOUR_OF_DAY) + "";
         String fileName = imgName;
-        String path = Environment.getExternalStorageDirectory() + File.separator + "CiaoNiaoBarCode" +
+        String path = Environment.getExternalStorageDirectory() + File.separator + "CaiNiaoBarcode" +
                 File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
         File dir = new File(path);
         if (!dir.exists()) {
@@ -601,7 +1332,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             });
         } catch (Exception e) {
             e.printStackTrace();
-            Log.i("rxjava", "IOException e = " + e.getMessage());
+            Log.i("socket1", "IOException e = " + e.getMessage());
+        }
+    }
+
+    /**
+     * 存储条码信息
+     *
+     * @param calendar  当前系统时间
+     * @param barcode   条码
+     * @param deviceNum 设备序列号
+     * @param imgName   图片名称
+     */
+    private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum, String imgName) {
+        String year = calendar.get(Calendar.YEAR) + "";
+        String month = calendar.get(Calendar.MONTH) + 1 + "";
+        String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
+        String hour = calendar.get(Calendar.HOUR_OF_DAY) + "";
+        String time = year + month + day + hour;
+        //拼接图片信息内容
+        String content = time + "," + barcode + "," + deviceNum + "," + imgName;
+        String fileName = time + ".txt";
+        //对应图片目录下的条码信息目录
+        String path = Environment.getExternalStorageDirectory() + File.separator + "CaiNiaoBarcode" +
+                File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
+        File dir = new File(path);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        final File file = new File(path, fileName);
+        try {
+            FileOutputStream fos = new FileOutputStream(file, true);
+            fos.write(content.getBytes());
+            fos.flush();
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.i("socket1", "IOException e = " + e.getMessage());
         }
     }
 
@@ -609,21 +1376,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start_socket:
+                ips = sharedPreferences.getString(Constants.IP, "192.168.80.64,192.168.80.64,192.168.80.64");
+                ipArray = ips.split(",");
                 //开启socket连接
-                new Thread() {
-                    @Override
-                    public void run() {
-                        if (socket1 == null || !socket1.isConnected()) {
-                            socketClient(1);
-                        }
-                        if (socket2 == null || !socket2.isConnected()) {
-                            socketClient(2);
-                        }
-                        if (socket3 == null || !socket3.isConnected()) {
-                            socketClient(3);
-                        }
+                if (socket1 == null || !socket1.isConnected()) {
+                    if (ipArray != null && ipArray.length >= 1) {
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                Log.e("socket1", "启动socket1");
+                                socketClient();
+                            }
+                        }.start();
                     }
-                }.start();
+                }
+
+                if (socket2 == null || !socket2.isConnected()) {
+                    if (ipArray != null && ipArray.length >= 2) {
+
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket2", "启动socket2");
+                                socketClient2();
+                            }
+                        }).start();
+                    }
+                }
+
+                if (socket3 == null || !socket3.isConnected()) {
+                    if (ipArray != null && ipArray.length == 3) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.e("socket3", "启动socket3");
+                                socketClient3();
+                            }
+                        }).start();
+                    }
+                }
                 break;
             case R.id.stop_socket:
                 //关闭socket连接
@@ -635,37 +1426,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                         socket1.shutdownInput();
                         socket1.close();
-                        Toast.makeText(this, "已关闭连接1", Toast.LENGTH_SHORT).show();
+                        socket1 = null;
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                     } catch (IOException e) {
-                        Toast.makeText(this, "已关闭连接1", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
                 if (socket2 != null && socket2.isConnected()) {
                     try {
-                        isEnableDeal = false;
+                        isEnableDea2 = false;
                         if (inputStream2 != null) {
                             inputStream2.close();
                         }
                         socket2.shutdownInput();
                         socket2.close();
-                        Toast.makeText(this, "已关闭连接2", Toast.LENGTH_SHORT).show();
+                        socket2 = null;
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                     } catch (IOException e) {
-                        Toast.makeText(this, "已关闭连接2", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
                 if (socket3 != null && socket3.isConnected()) {
                     try {
-                        isEnableDeal = false;
+                        isEnableDea3 = false;
                         if (inputStream3 != null) {
                             inputStream3.close();
                         }
                         socket3.shutdownInput();
                         socket3.close();
-                        Toast.makeText(this, "已关闭连接3", Toast.LENGTH_SHORT).show();
+                        socket3 = null;
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                     } catch (IOException e) {
-                        Toast.makeText(this, "已关闭连接3", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
@@ -702,6 +1496,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onDestroy() {
         super.onDestroy();
         isEnableDeal = false;
+        isEnableDea2 = false;
+        isEnableDea3 = false;
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }

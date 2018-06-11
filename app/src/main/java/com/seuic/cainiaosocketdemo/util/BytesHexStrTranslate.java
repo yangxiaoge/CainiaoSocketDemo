@@ -167,7 +167,7 @@ public class BytesHexStrTranslate {
 
         //buf = temp1;
         int datalength = BytesHexStrTranslate.bytes2int(temp1);
-        System.out.println("datalength = "+datalength);
+        System.out.println("datalength = " + datalength);
 
 
         byte[] aad = {56, 45, 33, 38};
@@ -182,7 +182,12 @@ public class BytesHexStrTranslate {
 
         byte[] bufasd = new byte[5013504];
 
-        String ss = new String(buf,"utf-8");
+        String ss = "192.168.80.64,192.168.80.65,192.168.80.67";
+        System.out.println(ss.split(",").length);
+        String ss1 = "192.168.80.64 192.168.80.65 192.168.80.67";
+        System.out.println(ss1.split(" ").length);
+        String ss2 = "192.168.80.64|192.168.80.65|192.168.80.67";
+        System.out.println(ss2.split("|").length);
     }
 
 
