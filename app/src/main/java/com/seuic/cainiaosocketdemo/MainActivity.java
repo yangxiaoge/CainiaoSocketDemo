@@ -91,13 +91,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void socketClient() {
+    private void socketClient1() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                progressDialog.setTitle("启动中");
-                progressDialog.setCancelable(true);
-                progressDialog.show();
+                try {
+                    progressDialog.setTitle("启动中");
+                    progressDialog.setCancelable(true);
+                    progressDialog.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
         Log.e("socket1", "socketClient1");
@@ -114,14 +118,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if (e instanceof SocketTimeoutException) {
                     toast("连接超时，正在重连");
-                    releaseSocket();
+                    releaseSocket1();
                 } else if (e instanceof NoRouteToHostException) {
                     toast("该地址不存在，请检查");
                     //stopSelf();
                 } else if (e instanceof ConnectException) {
                     toast("连接异常或被拒绝，请检查");
                     //stopSelf();
-                    releaseSocket();
+                    releaseSocket1();
                 }
 
             } finally {
@@ -149,6 +153,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata1.barcode);
                             }
                         });
+                    }else {
+                        break;
+                    }
+
+                    //测试socket1是否挂掉了
+                    try {
+                        socket1.sendUrgentData(111);
+                    } catch (IOException e) {
+                        isEnableDeal = false;
+                        releaseSocket1();
+                        e.printStackTrace();
                     }
                 }
                 inputStream1.close();
@@ -210,6 +225,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata2.barcode);
                             }
                         });
+                    }else {
+                        break;
+                    }
+
+                    //测试socket2是否挂掉了
+                    try {
+                        socket2.sendUrgentData(222);
+                    } catch (IOException e) {
+                        isEnableDea2 = false;
+                        releaseSocket2();
+                        e.printStackTrace();
                     }
                 }
                 inputStream2.close();
@@ -270,6 +296,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata3.barcode);
                             }
                         });
+                    }else {
+                        break;
+                    }
+
+                    //测试socket3是否挂掉了
+                    try {
+                        socket3.sendUrgentData(333);
+                    } catch (IOException e) {
+                        isEnableDea3 = false;
+                        releaseSocket3();
+                        e.printStackTrace();
                     }
                 }
                 inputStream3.close();
@@ -301,7 +338,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /*释放资源*/
-    private void releaseSocket() {
+    private void releaseSocket1() {
 
         if (inputStream1 != null) {
             try {
@@ -320,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             socket1 = null;
         }
-        socketClient();
+        socketClient1();
     }
 
     private void releaseSocket2() {
@@ -373,6 +410,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         try {
             //第一步
             byte[] buf = new byte[16]; //数据头->条码长度
@@ -666,7 +704,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
-            saveImage(calendar, xdata1.imgname, imgBitmap);
+            saveImage(calendar, xdata1.barcode, xdata1.imgname, imgBitmap);
             savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
             return true;
 
@@ -975,7 +1013,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
-            saveImage(calendar, xdata1.imgname, imgBitmap);
+            saveImage(calendar, xdata1.barcode, xdata1.imgname, imgBitmap);
             savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
             return true;
 
@@ -1284,7 +1322,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
-            saveImage(calendar, xdata1.imgname, imgBitmap);
+            saveImage(calendar, xdata1.barcode, xdata1.imgname, imgBitmap);
             savaBarcodeInfo(calendar, xdata1.barcode, xdata1.deviceNum, xdata1.imgname);
             return true;
 
@@ -1300,7 +1338,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param imgName
      * @param bmp
      */
-    private void saveImage(Calendar calendar, String imgName, Bitmap bmp) {
+    private void saveImage(Calendar calendar, String barcode, String imgName, final Bitmap bmp) {
+        if (data.contains(barcode)) return;//已存在
 
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
@@ -1319,6 +1358,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
             fos.flush();
             fos.close();
+
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -1345,6 +1385,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @param imgName   图片名称
      */
     private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum, String imgName) {
+        if (data.contains(barcode)) return; //已存在
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
@@ -1385,7 +1426,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             @Override
                             public void run() {
                                 Log.e("socket1", "启动socket1");
-                                socketClient();
+                                socketClient1();
                             }
                         }.start();
                     }
@@ -1443,7 +1484,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         socket2.close();
                         socket2 = null;
                         Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
@@ -1458,7 +1499,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         socket3.close();
                         socket3 = null;
                         Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
