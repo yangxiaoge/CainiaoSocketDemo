@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="ip"
+        android:hint="ip，输入3个ip请以|分割"
         tools:layout_editor_absoluteX="69dp"
         tools:layout_editor_absoluteY="39dp" />
 
@@ -21,8 +21,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:ems="10"
+        android:enabled="false"
         android:hint="port"
         android:inputType="number"
+        android:text="7777"
         tools:layout_editor_absoluteX="69dp"
         tools:layout_editor_absoluteY="119dp" />
 

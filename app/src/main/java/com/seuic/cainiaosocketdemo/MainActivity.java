@@ -25,7 +25,6 @@ import com.chad.library.adapter.base.BaseViewHolder;
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
 import com.seuic.cainiaosocketdemo.util.Constants;
 import com.seuic.cainiaosocketdemo.util.Data_syn;
-import com.vilyever.socketclient.SocketClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -44,17 +43,22 @@ import java.util.List;
  * Created by yangjianan on 2018/6/1.
  */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private SocketClient socketClient;
     private ProgressDialog progressDialog;
     private ImageView mImageview;
     private TextView currentCode;
     private TextView countCode;
     private RecyclerView codeListRV;
     private CodeListAdapter codeListAdapter;
-    private List<CodeItem> data;
-    private XData xdata = new XData();
-    private Socket socket;
-    private InputStream inputStream;
+    private List<String> data;
+    private XData xdata1 = new XData();
+    private XData xdata2 = new XData();
+    private XData xdata3 = new XData();
+    private Socket socket1;
+    private Socket socket2;
+    private Socket socket3;
+    private InputStream inputStream1;
+    private InputStream inputStream2;
+    private InputStream inputStream3;
     private boolean isEnableDeal = true;//默认可以解析
     private SharedPreferences sharedPreferences;
 
@@ -83,20 +87,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    private void socketClient() {
+    /**
+     * @param socketIndex 三个socket判断标记
+     */
+    private void socketClient(int socketIndex) {
         progressDialog.setTitle("启动中");
         progressDialog.setCancelable(false);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                progressDialog.show();
+                if (!progressDialog.isShowing()) {
+                    progressDialog.show();
+                }
             }
         });
 
-        while (socket == null) {
+        while (socket1 == null || socket2 == null || socket3 == null) {
             try {
-                socket = new Socket(sharedPreferences.getString(Constants.IP,"192.168.80.64"),
-                        Integer.parseInt(sharedPreferences.getString(Constants.PORT,"7777")));
+                String ips = sharedPreferences.getString(Constants.IP, "192.168.80.64");
+                String[] ipArray = ips.split("|");
+                if (ipArray.length != 3) {
+                    toast("请设置正确的ip格式！");
+                    return;
+                }
+                if (socketIndex == 1) {
+                    socket1 = new Socket(ipArray[0],
+                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
+                } else if (socketIndex == 2) {
+                    socket2 = new Socket(ipArray[1],
+                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
+                } else if (socketIndex == 3) {
+                    socket3 = new Socket(ipArray[2],
+                            Integer.parseInt(sharedPreferences.getString(Constants.PORT, "7777")));
+                }
                 toast("连接成功");
                 isEnableDeal = true;
             } catch (IOException e) {
@@ -106,14 +129,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if (e instanceof SocketTimeoutException) {
                     toast("连接超时，正在重连");
-                    releaseSocket();
+                    releaseSocket1();
                 } else if (e instanceof NoRouteToHostException) {
                     toast("该地址不存在，请检查");
                     //stopSelf();
                 } else if (e instanceof ConnectException) {
                     toast("连接异常或被拒绝，请检查");
                     //stopSelf();
-                    releaseSocket();
+                    releaseSocket1();
                 }
 
             } finally {
@@ -127,34 +150,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //接受服务器数据
             try {
-                if (socket != null) {
-                    //toast(socket.isConnected() + "");
-                }
-                if (socket == null || !socket.isConnected()) return;
-                inputStream = socket.getInputStream();
-//                while (!MainActivity.this.isFinishing()) {
+                //if (socket1 == null || !socket1.isConnected()) return;
                 while (isEnableDeal) {
-                    boolean getSuccess = dealWithData(inputStream);
-                    if (getSuccess) {
-                        System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata.imgname);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.e("socket", "data size1 =  " + data.size());
-                                //UI线程刷新条码区域
-                                data.add(new CodeItem(xdata.barcode));
-                                //codeListAdapter.addData(data);
-                                codeListAdapter.notifyDataSetChanged();
-                                Log.e("socket", "data size2 =  " + data.size());
-                                //赋值
-                                currentCode.setText(xdata.barcode);
-                                countCode.setText(String.valueOf(data.size()));
-                            }
-                        });
+                    Log.e("socket1", "socketIndex  = " + socketIndex);
+                    if (socketIndex == 1) {
+                        inputStream1 = socket1.getInputStream();
+                        boolean getSuccess = dealWithData(inputStream1, xdata1);
+                        if (getSuccess) {
+                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata1.imgname);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    codeListUpdate(xdata1.barcode);
+                                }
+                            });
+                        }
+
+                    } else if (socketIndex == 2) {
+                        inputStream2 = socket2.getInputStream();
+                        boolean getSuccess = dealWithData(inputStream2, xdata2);
+                        if (getSuccess) {
+                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata2.imgname);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    codeListUpdate(xdata2.barcode);
+                                }
+                            });
+                        }
+
+                    } else if (socketIndex == 3) {
+                        inputStream3 = socket3.getInputStream();
+                        boolean getSuccess = dealWithData(inputStream3, xdata3);
+                        if (getSuccess) {
+                            System.out.println("成功啦成功啦成功啦成功啦成功啦 xdata.imgname = " + xdata3.imgname);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    codeListUpdate(xdata3.barcode);
+                                }
+                            });
+                        }
                     }
                 }
-                inputStream.close();
-                socket.close();
+
+                inputStream1.close();
+                socket1.close();
+                inputStream2.close();
+                socket2.close();
+                inputStream3.close();
+                socket3.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -162,37 +207,83 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    /*释放资源*/
-    private void releaseSocket() {
+    private void codeListUpdate(String barcode) {
+        Log.e("socket1", "data size1 =  " + data.size());
+        //UI线程刷新条码区域,去重
+        if (!data.contains(barcode)) {
+            data.add(barcode);
+            codeListAdapter.notifyDataSetChanged();
+        }
+        Log.e("socket1", "data size2 =  " + data.size());
+        //赋值
+        currentCode.setText(barcode);
+        countCode.setText(String.valueOf(data.size()));
+    }
 
-        if (inputStream != null) {
+    /*释放资源*/
+    private void releaseSocket1() {
+
+        if (inputStream1 != null) {
             try {
-                inputStream.close();
+                inputStream1.close();
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            inputStream = null;
+            inputStream1 = null;
+        }
+        if (inputStream2 != null) {
+            try {
+                inputStream2.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream2 = null;
+        }
+        if (inputStream3 != null) {
+            try {
+                inputStream3.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream3 = null;
         }
 
-        if (socket != null) {
+        if (socket1 != null) {
             try {
-                socket.close();
+                socket1.close();
             } catch (IOException e) {
             }
-            socket = null;
+            socket1 = null;
         }
-
+        if (socket2 != null) {
+            try {
+                socket2.close();
+            } catch (IOException e) {
+            }
+            socket2 = null;
+        }
+        if (socket3 != null) {
+            try {
+                socket3.close();
+            } catch (IOException e) {
+            }
+            socket3 = null;
+        }
         /*重新初始化socket*/
 //        if (isReConnect) {
-        socketClient();
+        socketClient(1);
+        socketClient(2);
+        socketClient(3);
 //        }
 
     }
 
-    private boolean dealWithData(InputStream is) {
+    private boolean dealWithData(InputStream is, XData xdata) {
         try {
-            Log.e("socket", "dealWithData开始解析 is.available() " + is.available());
+            Log.e("socket1", "dealWithData开始解析 is.available() " + is.available());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -209,10 +300,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             //数据头不匹配
             if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket", "Read 0xFEFE time out");
+                Log.e("socket1", "Read 0xFEFE time out");
                 return false;
             }
-            Log.i("socket", "读取数据头成功");
+            Log.i("socket1", "读取数据头成功");
 
             //第二步，条码长度,4
             //12000000(服务器从高到低，需要转成00000012从低到高)
@@ -227,8 +318,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
-            Log.i("socket", "条码长度 = " + codeLength);
+            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
@@ -246,17 +337,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket", "Read barcodelen Exception " + ex.toString());
+                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
                         xdata.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.e("socket", "barcodelen received_Total == " + received_Total);
+                    Log.e("socket1", "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket", "Read barcode time out ");
+                    Log.e("socket1", "Read barcode time out ");
                     xdata.error_msg = "Read barcode time out ";
                     return false;
                 }
@@ -265,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 xdata.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket", "读取条码成功 barcode =" + xdata.barcode);
+            Log.i("socket1", "读取条码成功 barcode =" + xdata.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -281,28 +372,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket", "Read imagenamelen Exception " + ex.toString());
+                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
                         xdata.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.e("socket", "imagenamelen received_Total == " + received_Total);
+                    Log.e("socket1", "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket", "Read imagenamelen time out ");
+                    Log.e("socket1", "Read imagenamelen time out ");
                     xdata.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket", "imagenamelen received_Total != 4");
+                Log.e("socket1", "imagenamelen received_Total != 4");
                 xdata.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
-            Log.i("socket", "读图片名称长度成功");
+            Log.i("socket1", "读图片名称长度成功");
 
             //读图片名称长度,长度为buf数组的十进制值
             //2f000000(服务器从高到低，需要转成0000002f从低到高)
@@ -314,7 +405,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //图片名称长度,
             //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
             long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket", "读图片名称长度成功 imagenamelen = " + longLen);
+            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
 
             //第五步，读图片名称
             if (longLen > 0) {
@@ -332,17 +423,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             received_Total += count;
                             remain_length -= count;
                         } catch (Exception ex) {
-                            Log.e("socket", "Read imagename Exception " + ex.toString());
+                            Log.e("socket1", "Read imagename Exception " + ex.toString());
                             xdata.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
-                        Log.e("socket", "imagename received_Total == " + received_Total);
+                        Log.e("socket1", "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
-                        Log.e("socket", "Read imagename time out ");
+                        Log.e("socket1", "Read imagename time out ");
                         xdata.error_msg = "Read imagename time out ";
                         return false;
                     }
@@ -351,7 +442,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 xdata.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket", "读图片名称成功 imgname = " + xdata.imgname);
+            Log.i("socket1", "读图片名称成功 imgname = " + xdata.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -367,24 +458,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket", "Read imagelen Exception " + ex.toString());
+                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
                         xdata.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.e("socket", "imagelen received_Total == " + received_Total);
+                    Log.e("socket1", "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket", "Read imagelen time out ");
+                    Log.e("socket1", "Read imagelen time out ");
                     xdata.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket", "imagelen received_Total != 4");
+                Log.e("socket1", "imagelen received_Total != 4");
                 xdata.error_msg = "imagelen received_Total != 4";
                 return false;
             }
@@ -398,7 +489,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
@@ -416,8 +507,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 bos.write(buf, 0, tempCount);
 
             }
-            Log.i("socket", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
-            Log.i("socket", "读图片数据成功 bos length= " + bos.toByteArray().length);
+            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
 
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
@@ -435,31 +526,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket", "Read scantime Exception " + ex.toString());
+                        Log.e("socket1", "Read scantime Exception " + ex.toString());
                         xdata.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.e("socket", "scantime received_Total == " + received_Total);
+                    Log.e("socket1", "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket", "Read scantime time out ");
+                    Log.e("socket1", "Read scantime time out ");
                     xdata.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket", "scantime received_Total != 19");
+                Log.e("socket1", "scantime received_Total != 19");
                 xdata.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xdata.scantime = new String(temp, "utf-8");
-            Log.i("socket", "读图片数据成功 scantime = " + xdata.scantime);
+            Log.i("socket1", "读图片数据成功 scantime = " + xdata.scantime);
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             //xdata.bitmap = imgBitmap;
@@ -484,10 +575,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
         String hour = calendar.get(Calendar.HOUR_OF_DAY) + "";
-//        String minute=calendar.get(Calendar.MINUTE)+"";
-//        String second=calendar.get(Calendar.SECOND)+"";
-//        String time=year+month+day+hour+minute+second;
-
         String fileName = imgName;
         String path = Environment.getExternalStorageDirectory() + File.separator + "CiaoNiaoBarCode" +
                 File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
@@ -496,7 +583,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             dir.mkdirs();
         }
         final File file = new File(path, fileName);
-
         try {
             FileOutputStream fos = new FileOutputStream(file);
             bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
@@ -523,28 +609,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start_socket:
-                if (socket != null && socket.isConnected()) return;
                 //开启socket连接
                 new Thread() {
                     @Override
                     public void run() {
-                        socketClient();
+                        if (socket1 == null || !socket1.isConnected()) {
+                            socketClient(1);
+                        }
+                        if (socket2 == null || !socket2.isConnected()) {
+                            socketClient(2);
+                        }
+                        if (socket3 == null || !socket3.isConnected()) {
+                            socketClient(3);
+                        }
                     }
                 }.start();
                 break;
             case R.id.stop_socket:
                 //关闭socket连接
-                if (socket != null && socket.isConnected()) {
+                if (socket1 != null && socket1.isConnected()) {
                     try {
                         isEnableDeal = false;
-                        if (inputStream != null) {
-                            inputStream.close();
+                        if (inputStream1 != null) {
+                            inputStream1.close();
                         }
-                        socket.shutdownInput();
-                        socket.close();
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
+                        socket1.shutdownInput();
+                        socket1.close();
+                        Toast.makeText(this, "已关闭连接1", Toast.LENGTH_SHORT).show();
                     } catch (IOException e) {
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "已关闭连接1", Toast.LENGTH_SHORT).show();
+                        e.printStackTrace();
+                    }
+                }
+                if (socket2 != null && socket2.isConnected()) {
+                    try {
+                        isEnableDeal = false;
+                        if (inputStream2 != null) {
+                            inputStream2.close();
+                        }
+                        socket2.shutdownInput();
+                        socket2.close();
+                        Toast.makeText(this, "已关闭连接2", Toast.LENGTH_SHORT).show();
+                    } catch (IOException e) {
+                        Toast.makeText(this, "已关闭连接2", Toast.LENGTH_SHORT).show();
+                        e.printStackTrace();
+                    }
+                }
+                if (socket3 != null && socket3.isConnected()) {
+                    try {
+                        isEnableDeal = false;
+                        if (inputStream3 != null) {
+                            inputStream3.close();
+                        }
+                        socket3.shutdownInput();
+                        socket3.close();
+                        Toast.makeText(this, "已关闭连接3", Toast.LENGTH_SHORT).show();
+                    } catch (IOException e) {
+                        Toast.makeText(this, "已关闭连接3", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
@@ -557,23 +678,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 codeListAdapter.notifyDataSetChanged();
                 break;
             case R.id.imageButton:
-                startActivity(new Intent(this,SettingActivity.class));
+                startActivity(new Intent(this, SettingActivity.class));
                 break;
             default:
         }
     }
 
 
-    class CodeListAdapter extends BaseQuickAdapter<CodeItem, BaseViewHolder> {
+    class CodeListAdapter extends BaseQuickAdapter<String, BaseViewHolder> {
 
-        public CodeListAdapter(@Nullable List<CodeItem> data) {
+        public CodeListAdapter(@Nullable List<String> data) {
             super(data);
             mLayoutResId = android.R.layout.simple_list_item_1;
         }
 
         @Override
-        protected void convert(BaseViewHolder helper, CodeItem item) {
-            helper.setText(android.R.id.text1, item.barcode);
+        protected void convert(BaseViewHolder helper, String barcode) {
+            helper.setText(android.R.id.text1, barcode);
         }
     }
 
@@ -584,10 +705,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
-        if (socket != null) {
+        if (socket1 != null) {
             try {
-                socket.shutdownInput();
-                socket.close();
+                socket1.shutdownInput();
+                socket1.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (socket2 != null) {
+            try {
+                socket2.shutdownInput();
+                socket2.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (socket3 != null) {
+            try {
+                socket3.shutdownInput();
+                socket3.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
