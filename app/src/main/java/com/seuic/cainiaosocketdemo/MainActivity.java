@@ -1405,6 +1405,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             FileOutputStream fos = new FileOutputStream(file, true);
             fos.write(content.getBytes());
+            fos.write("\r\n".getBytes());
             fos.flush();
             fos.close();
         } catch (Exception e) {
