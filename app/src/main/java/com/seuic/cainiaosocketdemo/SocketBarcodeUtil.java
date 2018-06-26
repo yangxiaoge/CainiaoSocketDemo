@@ -51,7 +51,7 @@ public class SocketBarcodeUtil {
     private boolean connectSuccess1; //socket1连接成功
     private boolean connectSuccess2; //socket2连接成功
     private boolean connectSuccess3; //socket3连接成功
-    //存储条码string集合
+    //存储条码string集合，条码去重用
     private List<String> data = new ArrayList<>();
     //文件存储目录名称,客户可以自己定义
     public static String DIRNAME = "CaiNiaoBarcode";
@@ -658,7 +658,7 @@ public class SocketBarcodeUtil {
      */
     private void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
         // TODO: 2018/6/26 测试时先注释掉
-        //if (data.contains(barcode)) return;//已存在
+        if (data.contains(barcode)) return;//已存在
         System.out.println("saveImage保存图片1");
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
@@ -698,7 +698,7 @@ public class SocketBarcodeUtil {
     private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum,
                                               String imgName, String imgPath) {
         // TODO: 2018/6/26 测试时先注释掉
-        //if (data.contains(barcode)) return;//已存在
+        if (data.contains(barcode)) return;//已存在
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
