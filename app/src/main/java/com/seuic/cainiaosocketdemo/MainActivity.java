@@ -1416,95 +1416,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
+        SocketBarcodeUtil instance = SocketBarcodeUtil.getInstance();
         switch (v.getId()) {
             case R.id.start_socket:
-                ips = sharedPreferences.getString(Constants.IP, "192.168.80.64,192.168.80.64,192.168.80.64");
-                ipArray = ips.split(",");
-                //开启socket连接
-                if (socket1 == null || !socket1.isConnected()) {
-                    if (ipArray != null && ipArray.length >= 1) {
-                        new Thread() {
-                            @Override
-                            public void run() {
-                                Log.e("socket1", "启动socket1");
-                                socketClient1();
-                            }
-                        }.start();
+                //开启
+                instance.startLink(new SocketBarcodeUtil.StartSocketCallback() {
+                    @Override
+                    public void startStatus(boolean status) {
+                        Log.d("startStatus",status+"");
                     }
-                }
-
-                if (socket2 == null || !socket2.isConnected()) {
-                    if (ipArray != null && ipArray.length >= 2) {
-
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.e("socket2", "启动socket2");
-                                socketClient2();
-                            }
-                        }).start();
-                    }
-                }
-
-                if (socket3 == null || !socket3.isConnected()) {
-                    if (ipArray != null && ipArray.length == 3) {
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.e("socket3", "启动socket3");
-                                socketClient3();
-                            }
-                        }).start();
-                    }
-                }
+                },/*"这里需要填写配置文件的路径"*/sharedPreferences.getString(Constants.IP,Constants.ipsDefault));
                 break;
             case R.id.stop_socket:
-                //关闭socket连接
-                if (socket1 != null && socket1.isConnected()) {
-                    try {
-                        isEnableDeal = false;
-                        if (inputStream1 != null) {
-                            inputStream1.close();
-                        }
-                        socket1.shutdownInput();
-                        socket1.close();
-                        socket1 = null;
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                    } catch (IOException e) {
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                        e.printStackTrace();
-                    }
-                }
-                if (socket2 != null && socket2.isConnected()) {
-                    try {
-                        isEnableDea2 = false;
-                        if (inputStream2 != null) {
-                            inputStream2.close();
-                        }
-                        socket2.shutdownInput();
-                        socket2.close();
-                        socket2 = null;
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                        e.printStackTrace();
-                    }
-                }
-                if (socket3 != null && socket3.isConnected()) {
-                    try {
-                        isEnableDea3 = false;
-                        if (inputStream3 != null) {
-                            inputStream3.close();
-                        }
-                        socket3.shutdownInput();
-                        socket3.close();
-                        socket3 = null;
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Toast.makeText(this, "已关闭连接", Toast.LENGTH_SHORT).show();
-                        e.printStackTrace();
-                    }
-                }
+                //关闭
+                instance.stopLink();
                 break;
             case R.id.clear_data:
                 currentCode.setText("");
