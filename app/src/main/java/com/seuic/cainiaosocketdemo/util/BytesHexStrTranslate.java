@@ -1,10 +1,5 @@
 package com.seuic.cainiaosocketdemo.util;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-
-import java.util.Arrays;
-
 /**
  * byte[]与16进制字符串相互转换
  *
@@ -19,8 +14,8 @@ public class BytesHexStrTranslate {
      * 方法一：
      * byte[] to hex string
      *
-     * @param bytes
-     * @return
+     * @param bytes 字节数组
+     * @return 十六进制字符串
      */
     public static String bytesToHexFun1(byte[] bytes) {
         // 一个byte为8位，可用两个十六进制位标识
@@ -45,8 +40,8 @@ public class BytesHexStrTranslate {
      * 方法二：
      * byte[] to hex string
      *
-     * @param bytes
-     * @return
+     * @param bytes 字节数组
+     * @return 十六进制字符串
      */
     public static String bytesToHexFun2(byte[] bytes) {
         char[] buf = new char[bytes.length * 2];
@@ -63,8 +58,8 @@ public class BytesHexStrTranslate {
      * 方法三：
      * byte[] to hex string
      *
-     * @param bytes
-     * @return
+     * @param bytes 字节数组
+     * @return 十六进制字符串
      */
     public static String bytesToHexFun3(byte[] bytes) {
         StringBuilder buf = new StringBuilder(bytes.length * 2);
@@ -78,8 +73,8 @@ public class BytesHexStrTranslate {
     /**
      * 将16进制字符串转换为byte[]
      *
-     * @param str
-     * @return
+     * @param str 十六进制字符串
+     * @return 字节数组
      */
     public static byte[] toBytes(String str) {
         if (str == null || str.trim().equals("")) {
@@ -95,6 +90,11 @@ public class BytesHexStrTranslate {
         return bytes;
     }
 
+    /**
+     * 字节数组转int
+     * @param b 字节数组
+     * @return int值
+     */
     public static int byteArrayToInt(byte[] b) {
         return b[3] & 0xFF |
                 (b[2] & 0xFF) << 8 |
@@ -116,79 +116,59 @@ public class BytesHexStrTranslate {
     }
 
     /**
-     * Bytes to bitmap.
-     * 字节数组转bitmap
-     *
-     * @param bytes The bytes.
-     * @return bitmap
+     *  将字节数组转化为16进制字符串，确定长度
+     * @param bytes 字节数组
+     * @param a 指定长度，即字节数组从下标 0 -> a-1
+     * @return 16进制字符串
      */
-    public static Bitmap bytes2Bitmap(final byte[] bytes) {
-        return (bytes == null || bytes.length == 0)
-                ? null
-                : BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+    public static String bytesToHexString(byte[] bytes, int a) {
+        String result = "";
+        for (int i = 0; i < a; i++) {
+            String hexString = Integer.toHexString(bytes[i] & 0xFF);// 将高24位置0
+            if (hexString.length() == 1) {
+                hexString = '0' + hexString;
+            }
+            result += hexString.toUpperCase();
+        }
+        return result;
     }
 
-    public static void main(String[] args) throws Exception {
-        byte[] bytes = "测试".getBytes("utf-8");
-        System.out.println("字节数组为：" + Arrays.toString(bytes));
-        System.out.println("方法一：" + bytesToHexFun1(bytes));
-        System.out.println("方法二：" + bytesToHexFun2(bytes));
-        System.out.println("方法三：" + bytesToHexFun3(bytes));
-
-        System.out.println("==================================");
-
-        String str = "e6b58be8af95";
-        System.out.println("转换后的字节数组：" + Arrays.toString(toBytes(str)));
-        System.out.println(new String(toBytes(str), "utf-8"));
-
-        byte[] lengthTemp = new byte[4];
-        lengthTemp[0] = 0x00;
-        lengthTemp[1] = 0x00;
-        lengthTemp[2] = 0x00;
-        lengthTemp[3] = 0x12;
-        System.out.println("codeBytes = " + Arrays.toString(lengthTemp));
-
-        //条码长度
-        int codeLength = BytesHexStrTranslate.bytes2int(lengthTemp);
-
-        /*lengthTemp[0] = 0;
-        lengthTemp[1] = 0;
-        lengthTemp[2] = 0;
-        lengthTemp[3] = 12;*/
-
-        String s = Data_syn.bytesToHexString(lengthTemp, 4);
-
-        byte[] temp1 = new byte[4];
-
-        temp1[0] = 0;
-        temp1[1] = 0;
-        temp1[2] = 0;
-        temp1[3] = 12;
-
-        //buf = temp1;
-        int datalength = BytesHexStrTranslate.bytes2int(temp1);
-        System.out.println("datalength = " + datalength);
-
-
-        byte[] aad = {56, 45, 33, 38};
-        String s1 = BytesHexStrTranslate.bytesToHexFun3(aad);
-
-
-        byte[] buf = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-        byte[] tp = new byte[4];
-        System.arraycopy(buf, 6, tp, 0, 4);
-
-        System.out.println(Arrays.toString(tp));
-
-        byte[] bufasd = new byte[5013504];
-
-        String ss = "192.168.80.64,192.168.80.65,192.168.80.67";
-        System.out.println(ss.split(",").length);
-        String ss1 = "192.168.80.64 192.168.80.65 192.168.80.67";
-        System.out.println(ss1.split(" ").length);
-        String ss2 = "192.168.80.64|192.168.80.65|192.168.80.67";
-        System.out.println(ss2.split("|").length);
+    /**
+     * 将字节数组转化为16进制字符串，不确定长度
+     * @param b 字节数组
+     * @return 16进制字符串
+     */
+    public static String Bytes2HexString(byte[] b) {
+        String ret = "";
+        for (int i =0; i < b.length; i++) {
+            String hex = Integer.toHexString(b[i] & 0xFF);// 将高24位置0
+            if (hex.length() == 1) {
+                hex = '0' + hex;
+            }
+            ret += hex.toUpperCase();
+        }
+        return ret;
     }
 
+    /**
+     * 将16进制字符串转化为字节数组
+     * @param paramString 字符串
+     * @return 字节数组
+     */
+    public static byte[] hexStr2Bytes(String paramString) {
+        int i = paramString.length() / 2;
 
+        byte[] arrayOfByte = new byte[i];
+        int j = 0;
+        while (true) {
+            if (j >= i)
+                return arrayOfByte;
+            int k = 1 + j * 2;
+            int l = k + 1;
+            arrayOfByte[j] = (byte) (0xFF & Integer.decode(
+                    "0x" + paramString.substring(j * 2, k)
+                            + paramString.substring(k, l)).intValue());
+            ++j;
+        }
+    }
 }

@@ -24,7 +24,6 @@ import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
 import com.seuic.cainiaosocketdemo.util.Constants;
-import com.seuic.cainiaosocketdemo.util.Data_syn;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -444,7 +443,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
             //数据头不匹配
-            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+            if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e("socket1", "Read 0xFEFE time out");
                 return false;
             }
@@ -468,7 +467,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
             Log.i("socket1", "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
@@ -753,7 +752,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
             //数据头不匹配
-            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+            if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e("socket1", "Read 0xFEFE time out");
                 return false;
             }
@@ -777,7 +776,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
             Log.i("socket1", "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
@@ -1062,7 +1061,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
             //数据头不匹配
-            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+            if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e("socket1", "Read 0xFEFE time out");
                 return false;
             }
@@ -1086,7 +1085,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
             Log.i("socket1", "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)

@@ -7,7 +7,6 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
-import com.seuic.cainiaosocketdemo.util.Data_syn;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -216,15 +215,19 @@ public class SocketBarcodeUtil {
 
         } catch (IOException e) {
             connectSuccess1 = false;
-            callback.startStatus(false);
+            if (callback != null)
+                callback.startStatus(false);
             e.printStackTrace();
         } finally {
             if (ipArray.length == 1 && connectSuccess1) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             }
         }
     }
@@ -273,7 +276,7 @@ public class SocketBarcodeUtil {
                 }
             }
             //数据头不匹配
-            if (!Data_syn.bytesToHexString(buf, 2).equals("FEFE")) {
+            if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e("socket1", "Read 0xFEFE time out");
                 return false;
             }
@@ -297,7 +300,7 @@ public class SocketBarcodeUtil {
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + Data_syn.Bytes2HexString(temp));
+            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
             Log.i("socket1", "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
@@ -583,15 +586,19 @@ public class SocketBarcodeUtil {
             }
         } catch (IOException e) {
             connectSuccess2 = false;
-            callback.startStatus(false);
+            if (callback != null)
+                callback.startStatus(false);
             e.printStackTrace();
         } finally {
             if (ipArray.length == 1 && connectSuccess1) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             }
         }
     }
@@ -637,15 +644,19 @@ public class SocketBarcodeUtil {
             }
         } catch (IOException e) {
             connectSuccess3 = false;
-            callback.startStatus(false);
+            if (callback != null)
+                callback.startStatus(false);
             e.printStackTrace();
         } finally {
             if (ipArray.length == 1 && connectSuccess1) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-                callback.startStatus(true);
+                if (callback != null)
+                    callback.startStatus(true);
             }
         }
     }
