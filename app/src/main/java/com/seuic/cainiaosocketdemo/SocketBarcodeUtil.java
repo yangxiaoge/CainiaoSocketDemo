@@ -667,7 +667,7 @@ public class SocketBarcodeUtil {
      * @param imgName
      * @param bmp
      */
-    private void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
+    private synchronized void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
         // TODO: 2018/6/26 测试时先注释掉
         if (data.contains(barcode)) return;//已存在
         System.out.println("saveImage保存图片1");
