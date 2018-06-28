@@ -1,15 +1,13 @@
 package com.seuic.cainiaosocketdemo;
 
-import android.graphics.Bitmap;
-import android.media.Image;
-
 /**
  * Created by yangjianan on 2018/6/1.
  */
 public class XData {
-    public String barcode;
+    public String barcode; //条码
     public String deviceNum; //设备序列号
-    public String imgname;
-    public String scantime;
-    public String error_msg;
+    public String imgname; //图片名称
+    public String scantime; //条码扫描时间
+    public String error_msg; //错误信息
+    public String imgPath; //文件路径
 }

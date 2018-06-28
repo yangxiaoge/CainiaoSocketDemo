@@ -1,12 +1,9 @@
-package com.seuic.cainiaosocketdemo;
+package com.seuic.barcodelib;
 
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Environment;
 import android.util.Log;
-
-import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -36,10 +33,6 @@ public class SocketBarcodeUtil {
     private InputStream inputStream1;
     private InputStream inputStream2;
     private InputStream inputStream3;
-    private boolean isEnableDeal = true;//默认可以解析
-    private boolean isEnableDea2 = true;//默认可以解析
-    private boolean isEnableDea3 = true;//默认可以解析
-    private SharedPreferences sharedPreferences;
     private String[] ipArray;
     // 单例模式
     private static SocketBarcodeUtil instance;
@@ -78,12 +71,14 @@ public class SocketBarcodeUtil {
 
         /**
          * 开启关闭状态,异常时为false
+         *
          * @param status status
          */
         void startStatus(boolean status);
 
         /**
          * 回调二维码
+         *
          * @param barcode barcode
          */
         void barcode(String barcode);
@@ -213,7 +208,7 @@ public class SocketBarcodeUtil {
                 boolean getSuccess = dealWithData(inputStream1, xdata1);
                 if (getSuccess && !data.contains(xdata1.barcode)) {
                     data.add(xdata1.barcode);
-                    if (callback!=null)
+                    if (callback != null)
                         callback.barcode(xdata1.barcode);
                 }
             }
@@ -274,7 +269,7 @@ public class SocketBarcodeUtil {
                 boolean getSuccess = dealWithData(inputStream2, xdata2);
                 if (getSuccess && !data.contains(xdata2.barcode)) {
                     data.add(xdata2.barcode);
-                    if (callback!=null)
+                    if (callback != null)
                         callback.barcode(xdata2.barcode);
                 }
             }
@@ -334,7 +329,7 @@ public class SocketBarcodeUtil {
                 boolean getSuccess = dealWithData(inputStream3, xdata3);
                 if (getSuccess && !data.contains(xdata3.barcode)) {
                     data.add(xdata3.barcode);
-                    if (callback!=null)
+                    if (callback != null)
                         callback.barcode(xdata3.barcode);
                 }
             }
@@ -669,7 +664,7 @@ public class SocketBarcodeUtil {
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
-            saveImage(calendar, xData, imgBitmap);
+            saveImage(calendar, xData.barcode, xData.deviceNum, xData.imgname, imgBitmap);
             return true;
 
         } catch (IOException e) {
@@ -681,18 +676,18 @@ public class SocketBarcodeUtil {
     /**
      * 保存bitmap图片到本地文件
      *
-     * @param xData XData
-     * @param bmp bitmap
+     * @param imgName
+     * @param bmp
      */
-    private synchronized void saveImage(Calendar calendar, XData xData, final Bitmap bmp) {
+    private void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
         // TODO: 2018/6/26 测试时先注释掉
-        if (data.contains(xData.barcode)) return;//已存在
+        if (data.contains(barcode)) return;//已存在
         System.out.println("saveImage保存图片1");
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
         String hour = calendar.get(Calendar.HOUR_OF_DAY) + "";
-        String fileName = xData.imgname;
+        String fileName = imgName;
         String path = Environment.getExternalStorageDirectory() + File.separator + DIRNAME +
                 File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
         File dir = new File(path);
@@ -708,8 +703,7 @@ public class SocketBarcodeUtil {
             fos.flush();
             fos.close();
 
-            xData.imgPath = file.getAbsolutePath();
-            savaBarcodeInfo(calendar, xData.barcode, xData.deviceNum, xData.imgname, xData.imgPath);
+            savaBarcodeInfo(calendar, barcode, deviceNum, imgName, file.getAbsolutePath());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -722,10 +716,10 @@ public class SocketBarcodeUtil {
      * @param barcode   条码
      * @param deviceNum 设备序列号
      * @param imgName   图片名称
-     * @param imgPath   图片绝对（全）路径
+     * @param imgPath   图片相对路径
      */
-    private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum,
-                                              String imgName, String imgPath) {
+    private void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum,
+                                 String imgName, String imgPath) {
         // TODO: 2018/6/26 测试时先注释掉
         if (data.contains(barcode)) return;//已存在
         String year = calendar.get(Calendar.YEAR) + "";
