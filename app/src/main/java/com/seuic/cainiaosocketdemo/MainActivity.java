@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private SharedPreferences sharedPreferences;
     private String ips = "192.168.80.64,192.168.80.64,192.168.80.64"; //169.254.173.207,169.254.222.233
     private String[] ipArray;
+    private SocketBarcodeUtil socketInstance = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -1415,11 +1416,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        SocketBarcodeUtil instance = SocketBarcodeUtil.getInstance();
+        if (socketInstance == null)
+            socketInstance = SocketBarcodeUtil.getInstance();
+
         switch (v.getId()) {
             case R.id.start_socket:
                 //开启
-                instance.startLink(new SocketBarcodeUtil.SocketCallback() {
+                socketInstance.startLink(new SocketBarcodeUtil.SocketCallback() {
                     @Override
                     public void startStatus(boolean status) {
                         Log.d("MainActivity", "开启关闭状态 status:" + status);
@@ -1433,7 +1436,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.stop_socket:
                 //关闭
-                instance.stopLink();
+                socketInstance.stopLink();
                 break;
             case R.id.clear_data:
                 currentCode.setText("");
