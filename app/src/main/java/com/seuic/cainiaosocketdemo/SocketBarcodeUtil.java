@@ -398,10 +398,10 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.e("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    Log.i("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
                     break;
                 }
-                //Thread.sleep(10);
+                //读取文件头超时
                 if (time_count-- <= 0) {
                     Log.e("socket1", "Read barcode time out ");
                     xData.error_msg = "Read barcode time out ";
@@ -457,7 +457,7 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.e("socket1", "barcodelen received_Total == " + received_Total);
+                    Log.i("socket1", "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
@@ -492,7 +492,7 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.e("socket1", "imagenamelen received_Total == " + received_Total);
+                    Log.i("socket1", "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
@@ -543,7 +543,7 @@ public class SocketBarcodeUtil {
                             return false;
                         }
                     } else {
-                        Log.e("socket1", "imagename received_Total == " + received_Total);
+                        Log.i("socket1", "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
@@ -578,7 +578,7 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.e("socket1", "imagelen received_Total == " + received_Total);
+                    Log.i("socket1", "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
@@ -625,6 +625,14 @@ public class SocketBarcodeUtil {
             Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
             Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
 
+            try {
+                Log.i("睡眠10毫秒1",System.currentTimeMillis()+"");
+                Thread.sleep(10);
+                Log.i("睡眠10毫秒2",System.currentTimeMillis()+"");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
             temp = new byte[19];
@@ -646,7 +654,7 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.e("socket1", "scantime received_Total == " + received_Total);
+                    Log.i("socket1", "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
