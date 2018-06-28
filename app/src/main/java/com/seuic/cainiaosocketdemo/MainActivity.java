@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata1.barcode);
                             }
                         });
-                    }else {
+                    } else {
                         break;
                     }
 
@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata2.barcode);
                             }
                         });
-                    }else {
+                    } else {
                         break;
                     }
 
@@ -295,7 +295,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 codeListUpdate(xdata3.barcode);
                             }
                         });
-                    }else {
+                    } else {
                         break;
                     }
 
@@ -1419,12 +1419,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.start_socket:
                 //开启
-                instance.startLink(new SocketBarcodeUtil.StartSocketCallback() {
+                instance.startLink(new SocketBarcodeUtil.SocketCallback() {
                     @Override
                     public void startStatus(boolean status) {
-                        Log.d("startStatus",status+"");
+                        Log.d("MainActivity", "开启关闭状态 status:" + status);
                     }
-                },/*"这里需要填写配置文件的路径"*/sharedPreferences.getString(Constants.IP,Constants.ipsDefault));
+
+                    @Override
+                    public void barcode(String barcode) {
+                        Log.d("MainActivity", "二维码 barcode:" + barcode);
+                    }
+                }, sharedPreferences.getString(Constants.IP, Constants.ipsDefault));
                 break;
             case R.id.stop_socket:
                 //关闭

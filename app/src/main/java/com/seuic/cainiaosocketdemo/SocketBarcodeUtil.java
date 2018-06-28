@@ -46,7 +46,7 @@ public class SocketBarcodeUtil {
     // 全局的线程池
     private static Executor executor;
     private static final int PORT = 7777;
-    private StartSocketCallback callback; //开启socket是否成功的回调
+    private SocketCallback callback; //开启socket是否成功的回调
     private boolean connectSuccess1; //socket1连接成功
     private boolean connectSuccess2; //socket2连接成功
     private boolean connectSuccess3; //socket3连接成功
@@ -73,9 +73,20 @@ public class SocketBarcodeUtil {
     /**
      * 开启socket是否成功的回调(由调用方注册)
      */
-    public interface StartSocketCallback {
+    public interface SocketCallback {
         //目前只有boolean，后续可加入状态码，标志各种状态事件
+
+        /**
+         * 开启关闭状态,异常时为false
+         * @param status status
+         */
         void startStatus(boolean status);
+
+        /**
+         * 回调二维码
+         * @param barcode barcode
+         */
+        void barcode(String barcode);
     }
 
     /**
@@ -83,7 +94,7 @@ public class SocketBarcodeUtil {
      *
      * @param inIps ip配置文件的字符串，ip之间以英文","分隔
      */
-    public void startLink(StartSocketCallback startSocketCallback, String inIps) {
+    public void startLink(SocketCallback startSocketCallback, String inIps) {
         callback = startSocketCallback;
 //        String ips = FileIOUtils.readFile2String(filePath);
         String ips = inIps;
@@ -100,17 +111,6 @@ public class SocketBarcodeUtil {
             executor.execute(runnable3);
         }
     }
-
-    /**
-     * socket连接相机1
-     */
-    Runnable runnable1 = new Runnable() {
-        @Override
-        public void run() {
-            Log.e("socket1", "启动socket1");
-            socketClient1();
-        }
-    };
 
     /**
      * 关闭socket扫描解码方法
@@ -184,6 +184,17 @@ public class SocketBarcodeUtil {
     }
 
     /**
+     * socket连接相机1
+     */
+    Runnable runnable1 = new Runnable() {
+        @Override
+        public void run() {
+            Log.e("socket1", "启动socket1");
+            socketClient1();
+        }
+    };
+
+    /**
      * 连接socket1
      */
     private void socketClient1() {
@@ -202,6 +213,8 @@ public class SocketBarcodeUtil {
                 boolean getSuccess = dealWithData(inputStream1, xdata1);
                 if (getSuccess && !data.contains(xdata1.barcode)) {
                     data.add(xdata1.barcode);
+                    if (callback!=null)
+                        callback.barcode(xdata1.barcode);
                 }
             }
 
@@ -215,6 +228,126 @@ public class SocketBarcodeUtil {
 
         } catch (IOException e) {
             connectSuccess1 = false;
+            if (callback != null)
+                callback.startStatus(false);
+            e.printStackTrace();
+        } finally {
+            if (ipArray.length == 1 && connectSuccess1) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
+                if (callback != null)
+                    callback.startStatus(true);
+            }
+        }
+    }
+
+    /**
+     * socket连接相机2
+     */
+    Runnable runnable2 = new Runnable() {
+        @Override
+        public void run() {
+            Log.e("socket2", "启动socket2");
+            socketClient2();
+        }
+    };
+
+    /**
+     * 连接socket2
+     */
+    private void socketClient2() {
+        try {
+            connectSuccess2 = true;
+            // 创建Socket对象 & 指定服务端的IP 及 端口号
+            socket2 = new Socket(ipArray[1], PORT);
+            // 判断客户端和服务器是否连接成功
+            System.out.println("socket2连接" + socket2.isConnected());
+
+            inputStream2 = socket2.getInputStream();
+
+            //这个条件有待思考
+            while (socket2 != null && !socket2.isClosed()) {
+                boolean getSuccess = dealWithData(inputStream2, xdata2);
+                if (getSuccess && !data.contains(xdata2.barcode)) {
+                    data.add(xdata2.barcode);
+                    if (callback!=null)
+                        callback.barcode(xdata2.barcode);
+                }
+            }
+
+            //3、关闭IO资源（注：实际开发中需要放到finally中）
+            if (inputStream2 != null) {
+                inputStream2.close();
+            }
+            if (socket2 != null) {
+                socket2.close();
+            }
+        } catch (IOException e) {
+            connectSuccess2 = false;
+            if (callback != null)
+                callback.startStatus(false);
+            e.printStackTrace();
+        } finally {
+            if (ipArray.length == 1 && connectSuccess1) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
+                if (callback != null)
+                    callback.startStatus(true);
+            }
+        }
+    }
+
+    /**
+     * socket连接相机3
+     */
+    Runnable runnable3 = new Runnable() {
+        @Override
+        public void run() {
+            Log.e("socket3", "启动socket3");
+            socketClient3();
+        }
+    };
+
+    /**
+     * 连接socket3
+     */
+    private void socketClient3() {
+        try {
+            connectSuccess3 = true;
+            // 创建Socket对象 & 指定服务端的IP 及 端口号
+            socket3 = new Socket(ipArray[2], PORT);
+            // 判断客户端和服务器是否连接成功
+            System.out.println("socket3连接" + socket3.isConnected());
+
+            inputStream3 = socket3.getInputStream();
+
+            //这个条件有待思考
+            while (socket3 != null && !socket3.isClosed()) {
+                boolean getSuccess = dealWithData(inputStream3, xdata3);
+                if (getSuccess && !data.contains(xdata3.barcode)) {
+                    data.add(xdata3.barcode);
+                    if (callback!=null)
+                        callback.barcode(xdata3.barcode);
+                }
+            }
+
+            //3、关闭IO资源（注：实际开发中需要放到finally中）
+            if (inputStream3 != null) {
+                inputStream3.close();
+            }
+            if (socket3 != null) {
+                socket3.close();
+            }
+        } catch (IOException e) {
+            connectSuccess3 = false;
             if (callback != null)
                 callback.startStatus(false);
             e.printStackTrace();
@@ -542,122 +675,6 @@ public class SocketBarcodeUtil {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
-        }
-    }
-
-    /**
-     * socket连接相机2
-     */
-    Runnable runnable2 = new Runnable() {
-        @Override
-        public void run() {
-            Log.e("socket2", "启动socket2");
-            socketClient2();
-        }
-    };
-
-    /**
-     * 连接socket2
-     */
-    private void socketClient2() {
-        try {
-            connectSuccess2 = true;
-            // 创建Socket对象 & 指定服务端的IP 及 端口号
-            socket2 = new Socket(ipArray[1], PORT);
-            // 判断客户端和服务器是否连接成功
-            System.out.println("socket2连接" + socket2.isConnected());
-
-            inputStream2 = socket2.getInputStream();
-
-            //这个条件有待思考
-            while (socket2 != null && !socket2.isClosed()) {
-                boolean getSuccess = dealWithData(inputStream2, xdata2);
-                if (getSuccess && !data.contains(xdata2.barcode)) {
-                    data.add(xdata2.barcode);
-                }
-            }
-
-            //3、关闭IO资源（注：实际开发中需要放到finally中）
-            if (inputStream2 != null) {
-                inputStream2.close();
-            }
-            if (socket2 != null) {
-                socket2.close();
-            }
-        } catch (IOException e) {
-            connectSuccess2 = false;
-            if (callback != null)
-                callback.startStatus(false);
-            e.printStackTrace();
-        } finally {
-            if (ipArray.length == 1 && connectSuccess1) {
-                if (callback != null)
-                    callback.startStatus(true);
-            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-                if (callback != null)
-                    callback.startStatus(true);
-            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-                if (callback != null)
-                    callback.startStatus(true);
-            }
-        }
-    }
-
-    /**
-     * socket连接相机3
-     */
-    Runnable runnable3 = new Runnable() {
-        @Override
-        public void run() {
-            Log.e("socket3", "启动socket3");
-            socketClient3();
-        }
-    };
-
-    /**
-     * 连接socket3
-     */
-    private void socketClient3() {
-        try {
-            connectSuccess3 = true;
-            // 创建Socket对象 & 指定服务端的IP 及 端口号
-            socket3 = new Socket(ipArray[2], PORT);
-            // 判断客户端和服务器是否连接成功
-            System.out.println("socket3连接" + socket3.isConnected());
-
-            inputStream3 = socket3.getInputStream();
-
-            //这个条件有待思考
-            while (socket3 != null && !socket3.isClosed()) {
-                boolean getSuccess = dealWithData(inputStream3, xdata3);
-                if (getSuccess && !data.contains(xdata3.barcode)) {
-                    data.add(xdata3.barcode);
-                }
-            }
-
-            //3、关闭IO资源（注：实际开发中需要放到finally中）
-            if (inputStream3 != null) {
-                inputStream3.close();
-            }
-            if (socket3 != null) {
-                socket3.close();
-            }
-        } catch (IOException e) {
-            connectSuccess3 = false;
-            if (callback != null)
-                callback.startStatus(false);
-            e.printStackTrace();
-        } finally {
-            if (ipArray.length == 1 && connectSuccess1) {
-                if (callback != null)
-                    callback.startStatus(true);
-            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-                if (callback != null)
-                    callback.startStatus(true);
-            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-                if (callback != null)
-                    callback.startStatus(true);
-            }
         }
     }
 
