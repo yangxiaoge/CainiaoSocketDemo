@@ -70,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         switch (v.getId()) {
             case R.id.start_socket:
+                //手动触发清零
+                retryTime = 0;
                 //开启
                 startLink();
                 break;
@@ -98,14 +100,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         socketInstance.startLink(new SocketBarcodeUtil.SocketCallback() {
             @Override
             public void startStatus(boolean status) {
-                Log.d("MainActivity", "开启关闭状态 status:" + status);
                 if (!status) {
-                    if (retryTime++ <= 3) {
+                    if (retryTime++ < 3) {
                         startLink();
                     }
                 } else {
                     retryTime = 0;
                 }
+                Log.d("MainActivity", "开启关闭状态 status:" + status + " retryTime = " + retryTime);
             }
 
             @Override

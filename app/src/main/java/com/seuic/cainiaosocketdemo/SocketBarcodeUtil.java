@@ -46,6 +46,7 @@ public class SocketBarcodeUtil {
     private InputStream inputStream2;
     private InputStream inputStream3;
     private InputStream inputStream4;
+    private OutputStream outputStream1;
     private Timer timer1;
     private Timer timer2;
     private Timer timer3;
@@ -60,6 +61,7 @@ public class SocketBarcodeUtil {
     private List<String> data = new ArrayList<>();
     //文件存储目录名称,客户可以自己定义
     public static String DIRNAME = "CaiNiaoBarcode";
+    private static final int heartBeat = 5000;//心跳间隔
 
     /**
      * 外部获取单例
@@ -136,6 +138,15 @@ public class SocketBarcodeUtil {
                 e.printStackTrace();
             }
             inputStream1 = null;
+        }
+        if (outputStream1 != null) {
+            try {
+                outputStream1.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            outputStream1 = null;
         }
         if (socket1 != null) {
             try {
@@ -226,7 +237,7 @@ public class SocketBarcodeUtil {
         //关闭后回调连接状态为false
         if (callback != null) {
             callback.startStatus(false);
-            callback = null;
+            //callback = null;
         }
     }
 
@@ -265,12 +276,15 @@ public class SocketBarcodeUtil {
                     try {
                         outputStream.write(1);
                     } catch (IOException e) {
-                        timer1.cancel(); //取消定时器
-                        stopLink(); //关闭连接
+                        if (timer1 != null) {
+                            timer1.cancel();
+                            timer1 = null;
+                        }
+                        //stopLink(); //关闭连接
                         e.printStackTrace();
                     }
                 }
-            }, 1000, 20000);
+            }, 1000, heartBeat);
 
             while (socket1 != null && !socket1.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream1, xdata1);
@@ -332,12 +346,15 @@ public class SocketBarcodeUtil {
                     try {
                         outputStream.write(1);
                     } catch (IOException e) {
-                        timer2.cancel(); //取消定时器
-                        stopLink(); //关闭连接
+                        if (timer2 != null) {
+                            timer2.cancel();
+                            timer2 = null;
+                        }
+                        //stopLink(); //关闭连接
                         e.printStackTrace();
                     }
                 }
-            }, 1000, 20000);
+            }, 1000, heartBeat);
 
             while (socket2 != null && !socket2.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream2, xdata2);
@@ -401,12 +418,15 @@ public class SocketBarcodeUtil {
                     try {
                         outputStream.write(1);
                     } catch (IOException e) {
-                        timer3.cancel(); //取消定时器
-                        stopLink(); //关闭连接
+                        if (timer3 != null) {
+                            timer3.cancel();
+                            timer3 = null;
+                        }
+                        //stopLink(); //关闭连接
                         e.printStackTrace();
                     }
                 }
-            }, 1000, 20000);
+            }, 1000, heartBeat);
 
             while (socket3 != null && !socket3.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream3, xdata3);
@@ -472,12 +492,15 @@ public class SocketBarcodeUtil {
                     try {
                         outputStream.write(1);
                     } catch (IOException e) {
-                        timer4.cancel(); //取消定时器
-                        stopLink(); //关闭连接
+                        if (timer4 != null) {
+                            timer4.cancel();
+                            timer4 = null;
+                        }
+                        //stopLink(); //关闭连接
                         e.printStackTrace();
                     }
                 }
-            }, 1000, 20000);
+            }, 1000, heartBeat);
 
             while (socket4 != null && !socket4.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream4, xdata4);
@@ -819,10 +842,12 @@ public class SocketBarcodeUtil {
                 }
                 imageCount += tempCount;
                 try {
+                    if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
                     Log.i("socket1", "保存图片字节出错 " + e.getMessage());
                     e.printStackTrace();
+                    return false;
                 }
 
             }
