@@ -1,8 +1,11 @@
 package com.seuic.cainiaosocketdemo;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
@@ -17,8 +20,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -30,32 +31,26 @@ import java.util.concurrent.Executors;
  * 2，字节流解析，条码/图片存储
  * 3，StartSocketCallback接口回调状态
  */
-public class SocketBarcodeUtil {
-    private static SocketBarcodeUtil instance;// 单例模式
-    private static Executor executor;// 全局的线程池
-    private static final int PORT = 7777; //端口
+public class SocketBarcodeUtil_bakkkk {
     private XData xdata1 = new XData();
     private XData xdata2 = new XData();
     private XData xdata3 = new XData();
-    private XData xdata4 = new XData();
     private Socket socket1;
     private Socket socket2;
     private Socket socket3;
-    private Socket socket4;
     private InputStream inputStream1;
     private InputStream inputStream2;
     private InputStream inputStream3;
-    private InputStream inputStream4;
-    private Timer timer1;
-    private Timer timer2;
-    private Timer timer3;
-    private Timer timer4;
     private String[] ipArray;
+    // 单例模式
+    private static SocketBarcodeUtil_bakkkk instance;
+    // 全局的线程池
+    private static Executor executor;
+    private static final int PORT = 7777;
     private SocketCallback callback; //开启socket是否成功的回调
     private boolean connectSuccess1; //socket1连接成功
     private boolean connectSuccess2; //socket2连接成功
     private boolean connectSuccess3; //socket3连接成功
-    private boolean connectSuccess4; //socket4连接成功
     //存储条码string集合，条码去重用
     private List<String> data = new ArrayList<>();
     //文件存储目录名称,客户可以自己定义
@@ -66,14 +61,13 @@ public class SocketBarcodeUtil {
      *
      * @return Application
      */
-
-    public static SocketBarcodeUtil getInstance() {
+    public static SocketBarcodeUtil_bakkkk getInstance() {
         if (instance == null)
-            instance = new SocketBarcodeUtil();
+            instance = new SocketBarcodeUtil_bakkkk();
 
         if (executor == null)
-            // 新建一个4个线程的线程池
-            executor = Executors.newFixedThreadPool(4);
+            // 新建一个3个线程的线程池
+            executor = Executors.newFixedThreadPool(3);
         return instance;
     }
 
@@ -104,8 +98,10 @@ public class SocketBarcodeUtil {
      * @param inIps ip配置文件的字符串，ip之间以英文","分隔
      */
     public void startLink(SocketCallback startSocketCallback, String inIps) {
-        this.callback = startSocketCallback;
-        ipArray = inIps.split(",");
+        callback = startSocketCallback;
+//        String ips = FileIOUtils.readFile2String(filePath);
+        String ips = inIps;
+        ipArray = ips.split(",");
         if (ipArray.length >= 1 && (socket1 == null || !socket1.isConnected())) {
             executor.execute(runnable1);
         }
@@ -114,12 +110,8 @@ public class SocketBarcodeUtil {
             executor.execute(runnable2);
         }
 
-        if (ipArray.length >= 3 && (socket3 == null || !socket3.isConnected())) {
+        if (ipArray.length == 3 && (socket3 == null || !socket3.isConnected())) {
             executor.execute(runnable3);
-        }
-
-        if (ipArray.length == 4 && (socket4 == null || !socket4.isConnected())) {
-            executor.execute(runnable4);
         }
     }
 
@@ -146,10 +138,6 @@ public class SocketBarcodeUtil {
             }
             socket1 = null;
         }
-        if (timer1 != null) {
-            timer1.cancel();
-            timer1 = null;
-        }
 
         //socket2
         if (inputStream2 != null) {
@@ -169,10 +157,6 @@ public class SocketBarcodeUtil {
                 e.printStackTrace();
             }
             socket2 = null;
-        }
-        if (timer2 != null) {
-            timer2.cancel();
-            timer2 = null;
         }
 
         //socket3
@@ -194,41 +178,25 @@ public class SocketBarcodeUtil {
             }
             socket3 = null;
         }
-        if (timer3 != null) {
-            timer3.cancel();
-            timer3 = null;
-        }
-
-        //socket4
-        if (inputStream4 != null) {
-            try {
-                inputStream4.close();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            inputStream4 = null;
-        }
-        if (socket4 != null) {
-            try {
-                socket4.shutdownInput();
-                socket4.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            socket4 = null;
-        }
-        if (timer4 != null) {
-            timer4.cancel();
-            timer4 = null;
-        }
 
         //关闭后回调连接状态为false
         if (callback != null) {
             callback.startStatus(false);
             callback = null;
         }
+
+        if (mHandler != null) {
+            mHandler.removeCallbacks(mHeartBeatRunnable1);// 移除线程
+        }
     }
+
+    @SuppressLint("HandlerLeak")
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+        }
+    };
 
     /**
      * socket连接相机1
@@ -252,26 +220,13 @@ public class SocketBarcodeUtil {
             socket1 = new Socket(ipArray[0], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket1连接" + socket1.isConnected());
-            //连接成功回调
-            socketConnected();
             //2、拿到socket的输入流，这里存储的是服务器返回的数据
             inputStream1 = socket1.getInputStream();
 
-            final OutputStream outputStream = socket1.getOutputStream();
-            timer1 = new Timer();
-            timer1.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        outputStream.write(1);
-                    } catch (IOException e) {
-                        timer1.cancel(); //取消定时器
-                        stopLink(); //关闭连接
-                        e.printStackTrace();
-                    }
-                }
-            }, 1000, 20000);
+            // 心跳检测，检测socket是否连接
+            mHandler.postDelayed(mHeartBeatRunnable1, HEART_BEAT_RATE);
 
+            //这个条件有待思考
             while (socket1 != null && !socket1.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream1, xdata1);
 //                if (getSuccess && !data.contains(xdata1.barcode)) {
@@ -296,7 +251,16 @@ public class SocketBarcodeUtil {
                 callback.startStatus(false);
             e.printStackTrace();
         } finally {
-//            socketConnected();
+            if (ipArray.length == 1 && connectSuccess1) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
+                if (callback != null)
+                    callback.startStatus(true);
+            }
         }
     }
 
@@ -321,28 +285,15 @@ public class SocketBarcodeUtil {
             socket2 = new Socket(ipArray[1], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket2连接" + socket2.isConnected());
-            //连接成功回调
-            socketConnected();
-            inputStream2 = socket2.getInputStream();
-            final OutputStream outputStream = socket2.getOutputStream();
-            timer2 = new Timer();
-            timer2.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        outputStream.write(1);
-                    } catch (IOException e) {
-                        timer2.cancel(); //取消定时器
-                        stopLink(); //关闭连接
-                        e.printStackTrace();
-                    }
-                }
-            }, 1000, 20000);
 
+            inputStream2 = socket2.getInputStream();
+
+            //这个条件有待思考
             while (socket2 != null && !socket2.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream2, xdata2);
                 //                if (getSuccess && !data.contains(xdata1.barcode)) {
                 if (getSuccess) {
+
                     data.add(xdata2.barcode);
                     if (callback != null)
                         callback.barcode(xdata2.barcode);
@@ -362,14 +313,22 @@ public class SocketBarcodeUtil {
                 callback.startStatus(false);
             e.printStackTrace();
         } finally {
-//            socketConnected();
+            if (ipArray.length == 1 && connectSuccess1) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
+                if (callback != null)
+                    callback.startStatus(true);
+            }
         }
     }
 
     /**
      * socket连接相机3
      */
-
     Runnable runnable3 = new Runnable() {
         @Override
         public void run() {
@@ -381,7 +340,6 @@ public class SocketBarcodeUtil {
     /**
      * 连接socket3
      */
-
     private void socketClient3() {
         try {
             connectSuccess3 = true;
@@ -389,25 +347,10 @@ public class SocketBarcodeUtil {
             socket3 = new Socket(ipArray[2], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket3连接" + socket3.isConnected());
-            //连接成功回调
-            socketConnected();
+
             inputStream3 = socket3.getInputStream();
 
-            final OutputStream outputStream = socket3.getOutputStream();
-            timer3 = new Timer();
-            timer3.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        outputStream.write(1);
-                    } catch (IOException e) {
-                        timer3.cancel(); //取消定时器
-                        stopLink(); //关闭连接
-                        e.printStackTrace();
-                    }
-                }
-            }, 1000, 20000);
-
+            //这个条件有待思考
             while (socket3 != null && !socket3.isClosed()) {
                 boolean getSuccess = dealWithData(inputStream3, xdata3);
                 //                if (getSuccess && !data.contains(xdata1.barcode)) {
@@ -432,98 +375,65 @@ public class SocketBarcodeUtil {
                 callback.startStatus(false);
             e.printStackTrace();
         } finally {
-//            socketConnected();
+            if (ipArray.length == 1 && connectSuccess1) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
+                if (callback != null)
+                    callback.startStatus(true);
+            } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
+                if (callback != null)
+                    callback.startStatus(true);
+            }
         }
     }
 
-
-    /**
-     * socket连接相机3
-     */
-
-    Runnable runnable4 = new Runnable() {
+    //    private static final long HEART_BEAT_RATE = 4 * 1000;
+    private static final long HEART_BEAT_RATE = 500;
+    private long sendTime = 0L;
+    private Runnable mHeartBeatRunnable1 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket4", "启动socket4");
-            socketClient4();
+            if (System.currentTimeMillis() - sendTime >= HEART_BEAT_RATE) {//每隔4秒检测一次
+                boolean isSuccess = sendHeartBeatMsg("hb", socket1);
+                if (!isSuccess) {
+                    Log.i("mHeartBeatRunnable", "连接已断开，正在重连……");
+                    mHandler.removeCallbacks(mHeartBeatRunnable1);// 移除线程，重连时保证该线程已停止上次调用时的工作
+                    //连接失败
+                    if (callback != null)
+                        callback.startStatus(false);
+                }
+            }
+            mHandler.postDelayed(this, HEART_BEAT_RATE);
         }
     };
 
     /**
-     * 连接socket3
+     * 发送心跳包
+     *
+     * @param msg
+     * @return
      */
-
-    private void socketClient4() {
+    public boolean sendHeartBeatMsg(String msg, final Socket mSocket) {
+        if (null == mSocket) {
+            return false;
+        }
         try {
-            connectSuccess4 = true;
-            // 创建Socket对象 & 指定服务端的IP 及 端口号
-            socket4 = new Socket(ipArray[3], PORT);
-            // 判断客户端和服务器是否连接成功
-            System.out.println("socket4连接" + socket4.isConnected());
-            //连接成功回调
-            socketConnected();
-            inputStream4 = socket4.getInputStream();
+            if (!mSocket.isClosed() && !mSocket.isOutputShutdown()) {
+                String message = msg + "";
+                OutputStream mDataOutputStream = mSocket.getOutputStream();
+                mDataOutputStream.write(message.getBytes());
+                mDataOutputStream.flush();
+                sendTime = System.currentTimeMillis();
 
-            final OutputStream outputStream = socket4.getOutputStream();
-            timer4 = new Timer();
-            timer4.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        outputStream.write(1);
-                    } catch (IOException e) {
-                        timer4.cancel(); //取消定时器
-                        stopLink(); //关闭连接
-                        e.printStackTrace();
-                    }
-                }
-            }, 1000, 20000);
-
-            while (socket4 != null && !socket4.isClosed()) {
-                boolean getSuccess = dealWithData(inputStream4, xdata4);
-                //                if (getSuccess && !data.contains(xdata1.barcode)) {
-                if (getSuccess) {
-
-                    data.add(xdata4.barcode);
-                    if (callback != null)
-                        callback.barcode(xdata4.barcode);
-                }
-            }
-
-            //3、关闭IO资源（注：实际开发中需要放到finally中）
-            if (inputStream4 != null) {
-                inputStream4.close();
-            }
-            if (socket4 != null) {
-                socket4.close();
+            } else {
+                return false;
             }
         } catch (IOException e) {
-            connectSuccess4 = false;
-            if (callback != null)
-                callback.startStatus(false);
             e.printStackTrace();
-        } finally {
-//            socketConnected();
+            return false;
         }
-    }
-
-    /**
-     * 每一个socket， 连接成功都会直接走这个方法，最终回调结果给调用方
-     */
-    private void socketConnected() {
-        if (ipArray.length == 1 && connectSuccess1) {
-            if (callback != null)
-                callback.startStatus(true);
-        } else if (ipArray.length == 2 && connectSuccess1 && connectSuccess2) {
-            if (callback != null)
-                callback.startStatus(true);
-        } else if (ipArray.length == 3 && connectSuccess1 && connectSuccess2 && connectSuccess3) {
-            if (callback != null)
-                callback.startStatus(true);
-        } else if (ipArray.length == 4 && connectSuccess1 && connectSuccess2 && connectSuccess3 && connectSuccess4) {
-            if (callback != null)
-                callback.startStatus(true);
-        }
+        return true;
     }
 
     /**
@@ -570,7 +480,6 @@ public class SocketBarcodeUtil {
                 }
             }
 
-            //心跳 ok 检测，无需执行下去，直接return false
             if (new String(buf, "utf-8").equalsIgnoreCase("ok")) {
                 Log.e("socket1", "心跳 ok");
                 return false;
@@ -818,12 +727,7 @@ public class SocketBarcodeUtil {
                     tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
                 }
                 imageCount += tempCount;
-                try {
-                    bos.write(buf, 0, tempCount);
-                } catch (Exception e) {
-                    Log.i("socket1", "保存图片字节出错 " + e.getMessage());
-                    e.printStackTrace();
-                }
+                bos.write(buf, 0, tempCount);
 
             }
             Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
@@ -869,11 +773,7 @@ public class SocketBarcodeUtil {
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
-
-            //去重
-            if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
-                return false;
+            Log.i("socket1", "读图片数据成功 scantime = " + xData.scantime);
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
             Calendar calendar = Calendar.getInstance();  //获取当前时间，作为图标的名字
@@ -893,9 +793,8 @@ public class SocketBarcodeUtil {
      * @param bmp
      */
     private synchronized void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
-        // TODO: 2018/6/26 测试时先注释掉
-        //if (data.contains(barcode)) return;//已存在
-        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;
+        // wrong的条码不需要过滤
+        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;//已存在
         System.out.println("saveImage保存图片1");
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
@@ -934,9 +833,8 @@ public class SocketBarcodeUtil {
      */
     private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum,
                                               String imgName, String imgPath) {
-        // TODO: 2018/6/26 测试时先注释掉
-        // if (data.contains(barcode)) return;//已存在
-        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;
+        // wrong的条码不需要过滤
+        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;//已存在
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";

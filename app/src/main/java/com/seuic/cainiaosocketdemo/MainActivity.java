@@ -71,19 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.start_socket:
                 //开启
-                socketInstance.startLink(new SocketBarcodeUtil.SocketCallback() {
-                    @Override
-                    public void startStatus(boolean status) {
-                        Log.d("MainActivity", "开启关闭状态 status:" + status);
-                    }
-
-                    @Override
-                    public void barcode(String barcode) {
-                        Log.d("MainActivity", "二维码 barcode:" + barcode);
-                        //刷新数据
-                        codeListUpdate(barcode);
-                    }
-                }, sharedPreferences.getString(Constants.IP, Constants.ipsDefault));
+                startLink();
                 break;
             case R.id.stop_socket:
                 //关闭
@@ -101,6 +89,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             default:
         }
+    }
+
+    //重新连接计数
+    private int retryTime = 0;
+
+    private void startLink() {
+        socketInstance.startLink(new SocketBarcodeUtil.SocketCallback() {
+            @Override
+            public void startStatus(boolean status) {
+                Log.d("MainActivity", "开启关闭状态 status:" + status);
+                if (!status) {
+                    if (retryTime++ <= 3) {
+                        startLink();
+                    }
+                } else {
+                    retryTime = 0;
+                }
+            }
+
+            @Override
+            public void barcode(String barcode) {
+                Log.d("MainActivity", "二维码 barcode:" + barcode);
+                //刷新数据
+                codeListUpdate(barcode);
+            }
+        }, sharedPreferences.getString(Constants.IP, Constants.ipsDefault));
     }
 
     /**
