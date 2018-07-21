@@ -47,6 +47,9 @@ public class SocketBarcodeUtil {
     private InputStream inputStream3;
     private InputStream inputStream4;
     private OutputStream outputStream1;
+    private OutputStream outputStream2;
+    private OutputStream outputStream3;
+    private OutputStream outputStream4;
     private Timer timer1;
     private Timer timer2;
     private Timer timer3;
@@ -61,7 +64,7 @@ public class SocketBarcodeUtil {
     private List<String> data = new ArrayList<>();
     //文件存储目录名称,客户可以自己定义
     public static String DIRNAME = "CaiNiaoBarcode";
-    private static final int heartBeat = 5000;//心跳间隔
+    private static final int heartBeat = 20000;//心跳间隔20秒
 
     /**
      * 外部获取单例
@@ -105,7 +108,7 @@ public class SocketBarcodeUtil {
      *
      * @param inIps ip配置文件的字符串，ip之间以英文","分隔
      */
-    public void startLink(SocketCallback startSocketCallback, String inIps) {
+    public synchronized void startLink(SocketCallback startSocketCallback, String inIps) {
         this.callback = startSocketCallback;
         ipArray = inIps.split(",");
         if (ipArray.length >= 1 && (socket1 == null || !socket1.isConnected())) {
@@ -128,12 +131,11 @@ public class SocketBarcodeUtil {
     /**
      * 关闭socket扫描解码方法
      */
-    public void stopLink() {
+    public synchronized void stopLink() {
         //socket1
         if (inputStream1 != null) {
             try {
                 inputStream1.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -142,7 +144,6 @@ public class SocketBarcodeUtil {
         if (outputStream1 != null) {
             try {
                 outputStream1.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -150,7 +151,7 @@ public class SocketBarcodeUtil {
         }
         if (socket1 != null) {
             try {
-                socket1.shutdownInput();
+                //socket1.shutdownInput();
                 socket1.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -158,7 +159,11 @@ public class SocketBarcodeUtil {
             socket1 = null;
         }
         if (timer1 != null) {
-            timer1.cancel();
+            try {
+                timer1.cancel();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             timer1 = null;
         }
 
@@ -166,15 +171,22 @@ public class SocketBarcodeUtil {
         if (inputStream2 != null) {
             try {
                 inputStream2.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
             inputStream2 = null;
         }
+        if (outputStream2 != null) {
+            try {
+                outputStream2.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            outputStream2 = null;
+        }
         if (socket2 != null) {
             try {
-                socket2.shutdownInput();
+                //socket2.shutdownInput();
                 socket2.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -182,7 +194,11 @@ public class SocketBarcodeUtil {
             socket2 = null;
         }
         if (timer2 != null) {
-            timer2.cancel();
+            try {
+                timer2.cancel();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             timer2 = null;
         }
 
@@ -190,15 +206,22 @@ public class SocketBarcodeUtil {
         if (inputStream3 != null) {
             try {
                 inputStream3.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
             inputStream3 = null;
         }
+        if (outputStream3 != null) {
+            try {
+                outputStream3.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            outputStream3 = null;
+        }
         if (socket3 != null) {
             try {
-                socket3.shutdownInput();
+                //socket3.shutdownInput();
                 socket3.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -206,7 +229,11 @@ public class SocketBarcodeUtil {
             socket3 = null;
         }
         if (timer3 != null) {
-            timer3.cancel();
+            try {
+                timer3.cancel();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             timer3 = null;
         }
 
@@ -214,15 +241,22 @@ public class SocketBarcodeUtil {
         if (inputStream4 != null) {
             try {
                 inputStream4.close();
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
             inputStream4 = null;
         }
+        if (outputStream4 != null) {
+            try {
+                outputStream4.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            outputStream4 = null;
+        }
         if (socket4 != null) {
             try {
-                socket4.shutdownInput();
+                //socket4.shutdownInput();
                 socket4.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -230,7 +264,11 @@ public class SocketBarcodeUtil {
             socket4 = null;
         }
         if (timer4 != null) {
-            timer4.cancel();
+            try {
+                timer4.cancel();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             timer4 = null;
         }
 
@@ -247,7 +285,7 @@ public class SocketBarcodeUtil {
     Runnable runnable1 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket1", "启动socket1");
+            Log.e("socket1", "准备启动socket1");
             socketClient1();
         }
     };
@@ -257,30 +295,33 @@ public class SocketBarcodeUtil {
      */
     private void socketClient1() {
         try {
-            connectSuccess1 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             //1、创建监听指定服务器地址以及指定服务器监听的端口号
             socket1 = new Socket(ipArray[0], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket1连接" + socket1.isConnected());
             //连接成功回调
-            socketConnected();
+            connectSuccess1 = true;
+            socketConnectSuccess();
             //2、拿到socket的输入流，这里存储的是服务器返回的数据
             inputStream1 = socket1.getInputStream();
-
-            final OutputStream outputStream = socket1.getOutputStream();
+            //输出流
+            outputStream1 = socket1.getOutputStream();
             timer1 = new Timer();
             timer1.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     try {
-                        outputStream.write(1);
+                        if (socket1 == null || outputStream1 == null) return;
+                        outputStream1.write(1);
+                        Log.i("timer1", "timer1timer1timer1timer1");
                     } catch (IOException e) {
                         if (timer1 != null) {
                             timer1.cancel();
                             timer1 = null;
                         }
                         //stopLink(); //关闭连接
+                        Log.i("timer1", "异常 = " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
@@ -296,9 +337,12 @@ public class SocketBarcodeUtil {
                 }
             }
 
-            //3、关闭IO资源（注：实际开发中需要放到finally中）
+            //3、关闭IO资源
             if (inputStream1 != null) {
                 inputStream1.close();
+            }
+            if (outputStream1 != null) {
+                outputStream1.close();
             }
             if (socket1 != null) {
                 socket1.close();
@@ -309,8 +353,6 @@ public class SocketBarcodeUtil {
             if (callback != null)
                 callback.startStatus(false);
             e.printStackTrace();
-        } finally {
-//            socketConnected();
         }
     }
 
@@ -320,7 +362,7 @@ public class SocketBarcodeUtil {
     Runnable runnable2 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket2", "启动socket2");
+            Log.e("socket2", "准备启动socket2");
             socketClient2();
         }
     };
@@ -330,21 +372,25 @@ public class SocketBarcodeUtil {
      */
     private void socketClient2() {
         try {
-            connectSuccess2 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket2 = new Socket(ipArray[1], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket2连接" + socket2.isConnected());
             //连接成功回调
-            socketConnected();
+            connectSuccess2 = true;
+            socketConnectSuccess();
+            //输入流
             inputStream2 = socket2.getInputStream();
-            final OutputStream outputStream = socket2.getOutputStream();
+            //输出流
+            outputStream2 = socket2.getOutputStream();
             timer2 = new Timer();
             timer2.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     try {
-                        outputStream.write(1);
+                        if (socket2 == null || outputStream2 == null) return;
+                        outputStream2.write(1);
+                        Log.i("timer2", "timer2timer2timer2timer2");
                     } catch (IOException e) {
                         if (timer2 != null) {
                             timer2.cancel();
@@ -370,6 +416,9 @@ public class SocketBarcodeUtil {
             if (inputStream2 != null) {
                 inputStream2.close();
             }
+            if (outputStream2 != null) {
+                outputStream2.close();
+            }
             if (socket2 != null) {
                 socket2.close();
             }
@@ -378,8 +427,6 @@ public class SocketBarcodeUtil {
             if (callback != null)
                 callback.startStatus(false);
             e.printStackTrace();
-        } finally {
-//            socketConnected();
         }
     }
 
@@ -390,7 +437,7 @@ public class SocketBarcodeUtil {
     Runnable runnable3 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket3", "启动socket3");
+            Log.e("socket3", "准备启动socket3");
             socketClient3();
         }
     };
@@ -401,22 +448,25 @@ public class SocketBarcodeUtil {
 
     private void socketClient3() {
         try {
-            connectSuccess3 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket3 = new Socket(ipArray[2], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket3连接" + socket3.isConnected());
             //连接成功回调
-            socketConnected();
+            connectSuccess3 = true;
+            socketConnectSuccess();
+            //输入流
             inputStream3 = socket3.getInputStream();
-
-            final OutputStream outputStream = socket3.getOutputStream();
+            //输出流
+            outputStream3 = socket3.getOutputStream();
             timer3 = new Timer();
             timer3.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     try {
-                        outputStream.write(1);
+                        if (socket3 == null || outputStream3 == null) return;
+                        outputStream3.write(1);
+                        Log.i("timer3", "timer3timer3timer3timer3");
                     } catch (IOException e) {
                         if (timer3 != null) {
                             timer3.cancel();
@@ -443,6 +493,9 @@ public class SocketBarcodeUtil {
             if (inputStream3 != null) {
                 inputStream3.close();
             }
+            if (outputStream3 != null) {
+                outputStream3.close();
+            }
             if (socket3 != null) {
                 socket3.close();
             }
@@ -451,8 +504,6 @@ public class SocketBarcodeUtil {
             if (callback != null)
                 callback.startStatus(false);
             e.printStackTrace();
-        } finally {
-//            socketConnected();
         }
     }
 
@@ -464,7 +515,7 @@ public class SocketBarcodeUtil {
     Runnable runnable4 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket4", "启动socket4");
+            Log.e("socket4", "准备启动socket4");
             socketClient4();
         }
     };
@@ -475,22 +526,25 @@ public class SocketBarcodeUtil {
 
     private void socketClient4() {
         try {
-            connectSuccess4 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket4 = new Socket(ipArray[3], PORT);
             // 判断客户端和服务器是否连接成功
             System.out.println("socket4连接" + socket4.isConnected());
             //连接成功回调
-            socketConnected();
+            connectSuccess4 = true;
+            socketConnectSuccess();
+            //输入流
             inputStream4 = socket4.getInputStream();
-
-            final OutputStream outputStream = socket4.getOutputStream();
+            //输出流
+            outputStream4 = socket4.getOutputStream();
             timer4 = new Timer();
             timer4.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     try {
-                        outputStream.write(1);
+                        if (socket4 == null || outputStream4 == null) return;
+                        outputStream4.write(1);
+                        Log.i("timer4", "timer4timer4timer4timer4");
                     } catch (IOException e) {
                         if (timer4 != null) {
                             timer4.cancel();
@@ -517,6 +571,9 @@ public class SocketBarcodeUtil {
             if (inputStream4 != null) {
                 inputStream4.close();
             }
+            if (outputStream4 != null) {
+                outputStream4.close();
+            }
             if (socket4 != null) {
                 socket4.close();
             }
@@ -525,15 +582,13 @@ public class SocketBarcodeUtil {
             if (callback != null)
                 callback.startStatus(false);
             e.printStackTrace();
-        } finally {
-//            socketConnected();
         }
     }
 
     /**
      * 每一个socket， 连接成功都会直接走这个方法，最终回调结果给调用方
      */
-    private void socketConnected() {
+    private void socketConnectSuccess() {
         if (ipArray.length == 1 && connectSuccess1) {
             if (callback != null)
                 callback.startStatus(true);
@@ -587,8 +642,8 @@ public class SocketBarcodeUtil {
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read barcode time out ");
-                    xData.error_msg = "Read barcode time out ";
+                    Log.e("socket1", "Read 0xFEFE time out ");
+                    xData.error_msg = "Read 0xFEFE time out ";
                     return false;
                 }
             }
@@ -600,7 +655,7 @@ public class SocketBarcodeUtil {
             }
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket1", "Read 0xFEFE time out");
+                Log.e("socket1", "数据头不匹配");
                 return false;
             }
             Log.i("socket1", "读取数据头成功");
@@ -660,8 +715,15 @@ public class SocketBarcodeUtil {
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
-            buf = new byte[(int) codeLength];
-            temp = new byte[(int) codeLength];//读取codeLength长度字节
+            //防止内存溢出
+            try {
+                buf = new byte[(int) codeLength];
+                temp = new byte[(int) codeLength];//读取codeLength长度字节
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.e("socket1", "条码长度异常，内存溢出" + codeLength);
+                return false;
+            }
             received_Total = 0;
             remain_length = temp.length;//已收文件头被覆盖
             time_count = 100;//超时次数
@@ -746,9 +808,15 @@ public class SocketBarcodeUtil {
 
             //第五步，读图片名称
             if (longLen > 0) {
-
-                buf = new byte[(int) longLen];
-                temp = new byte[(int) longLen];
+                //防止内存溢出
+                try {
+                    buf = new byte[(int) longLen];
+                    temp = new byte[(int) longLen];
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.e("socket1", "读图片名称长度成功异常，内存溢出" + longLen);
+                    return false;
+                }
                 received_Total = 0;
                 remain_length = buf.length;//已收文件头被覆盖
                 time_count = 100;
@@ -831,18 +899,19 @@ public class SocketBarcodeUtil {
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
             int imageCount = 0; //已接收的字节数
-            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
             while (imagedatalen - imageCount > 0) {
                 buf = new byte[1024 * 10];
-                int tempCount = 0;
-                if (imagedatalen - imageCount < 1024 * 10) {
-                    tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
-                } else {
-                    tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
-                }
-                imageCount += tempCount;
+                int tempCount;
                 try {
-                    if (tempCount == -1) return false;
+                    if (imagedatalen - imageCount < 1024 * 10) {
+                        tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                    } else {
+                        tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                    }
+                    imageCount += tempCount;
+                    Log.i("socket1", "imageCount = " + imageCount + " tempCount = " + tempCount);
+                    //if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
                     Log.i("socket1", "保存图片字节出错 " + e.getMessage());
@@ -864,9 +933,8 @@ public class SocketBarcodeUtil {
                 if (remain_length > 0) {
                     try {
                         count = is.read(temp, 0, remain_length);
-                        System.out.println("取扫描时间1 count = " + count);
                         System.arraycopy(temp, 0, buf, received_Total, count);
-                        System.out.println("取扫描时间1 = " + BytesHexStrTranslate.bytesToHexFun1(temp));
+                        System.out.println("取扫描时间与校验码 = " + BytesHexStrTranslate.bytesToHexFun1(temp));
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
@@ -896,7 +964,7 @@ public class SocketBarcodeUtil {
             xData.scantime = new String(temp, "utf-8");
             Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
 
-            //去重
+            //去重， debug的时候可以注释掉
             if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
                 return false;
 
@@ -918,10 +986,6 @@ public class SocketBarcodeUtil {
      * @param bmp
      */
     private synchronized void saveImage(Calendar calendar, String barcode, String deviceNum, String imgName, final Bitmap bmp) {
-        // TODO: 2018/6/26 测试时先注释掉
-        //if (data.contains(barcode)) return;//已存在
-        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;
-        System.out.println("saveImage保存图片1");
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
@@ -930,18 +994,16 @@ public class SocketBarcodeUtil {
         String path = Environment.getExternalStorageDirectory() + File.separator + DIRNAME +
                 File.separator + year + File.separator + month + File.separator + day + File.separator + hour;
         File dir = new File(path);
-        System.out.println("saveImage保存图片2" + dir.exists());
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        System.out.println("saveImage保存图片3" + dir.exists());
         final File file = new File(path, fileName);
         try {
             FileOutputStream fos = new FileOutputStream(file);
             bmp.compress(Bitmap.CompressFormat.JPEG, 80, fos);
             fos.flush();
             fos.close();
-
+            System.out.println("saveImage保存图片成功 - "+file.getAbsolutePath());
             savaBarcodeInfo(calendar, barcode, deviceNum, imgName, file.getAbsolutePath());
         } catch (Exception e) {
             e.printStackTrace();
@@ -959,9 +1021,6 @@ public class SocketBarcodeUtil {
      */
     private synchronized void savaBarcodeInfo(Calendar calendar, String barcode, String deviceNum,
                                               String imgName, String imgPath) {
-        // TODO: 2018/6/26 测试时先注释掉
-        // if (data.contains(barcode)) return;//已存在
-        if (data.contains(barcode) && !barcode.equalsIgnoreCase("wrong")) return;
         String year = calendar.get(Calendar.YEAR) + "";
         String month = calendar.get(Calendar.MONTH) + 1 + "";
         String day = calendar.get(Calendar.DAY_OF_MONTH) + "";
@@ -986,6 +1045,7 @@ public class SocketBarcodeUtil {
             fos.write("\r\n".getBytes());
             fos.flush();
             fos.close();
+            System.out.println("savaBarcodeInfo保存条码信息成功 - "+file.getAbsolutePath());
         } catch (Exception e) {
             e.printStackTrace();
         }
