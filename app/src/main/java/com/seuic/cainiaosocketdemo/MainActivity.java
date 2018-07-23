@@ -101,8 +101,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void startStatus(boolean status) {
                 if (!status) {
-                    if (retryTime++ < 3) {
+                    try {
+                        Thread.sleep(100);
+                        retryTime++;
                         startLink();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 } else {
                     retryTime = 0;
