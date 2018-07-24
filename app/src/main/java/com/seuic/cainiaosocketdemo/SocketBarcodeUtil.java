@@ -894,6 +894,8 @@ public class SocketBarcodeUtil {
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
             //防止内存溢出
+            //条码长度超过10000就说明有问题（10000是自己指定的）
+            if (codeLength > 10000) return false;
             try {
                 buf = new byte[(int) codeLength];
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
@@ -987,6 +989,8 @@ public class SocketBarcodeUtil {
             //第五步，读图片名称
             if (longLen > 0) {
                 //防止内存溢出
+                //图片名称长度超过10000就说明有问题（10000是自己指定的）
+                if (longLen > 10000) return false;
                 try {
                     buf = new byte[(int) longLen];
                     temp = new byte[(int) longLen];
@@ -1262,6 +1266,8 @@ public class SocketBarcodeUtil {
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
             //防止内存溢出
+            //条码长度超过10000就说明有问题（10000是自己指定的）
+            if (codeLength > 10000) return false;
             try {
                 buf = new byte[(int) codeLength];
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
@@ -1355,6 +1361,8 @@ public class SocketBarcodeUtil {
             //第五步，读图片名称
             if (longLen > 0) {
                 //防止内存溢出
+                //图片名称长度超过10000就说明有问题（10000是自己指定的）
+                if (longLen > 10000) return false;
                 try {
                     buf = new byte[(int) longLen];
                     temp = new byte[(int) longLen];
@@ -1630,6 +1638,8 @@ public class SocketBarcodeUtil {
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
             //防止内存溢出
+            //条码长度超过10000就说明有问题（10000是自己指定的）
+            if (codeLength > 10000) return false;
             try {
                 buf = new byte[(int) codeLength];
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
@@ -1723,6 +1733,8 @@ public class SocketBarcodeUtil {
             //第五步，读图片名称
             if (longLen > 0) {
                 //防止内存溢出
+                //图片名称长度超过10000就说明有问题（10000是自己指定的）
+                if (longLen > 10000) return false;
                 try {
                     buf = new byte[(int) longLen];
                     temp = new byte[(int) longLen];
@@ -1998,6 +2010,8 @@ public class SocketBarcodeUtil {
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
             //防止内存溢出
+            //条码长度超过10000就说明有问题（10000是自己指定的）
+            if (codeLength > 10000) return false;
             try {
                 buf = new byte[(int) codeLength];
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
@@ -2091,6 +2105,8 @@ public class SocketBarcodeUtil {
             //第五步，读图片名称
             if (longLen > 0) {
                 //防止内存溢出
+                //图片名称长度超过10000就说明有问题（10000是自己指定的）
+                if (longLen > 10000) return false;
                 try {
                     buf = new byte[(int) longLen];
                     temp = new byte[(int) longLen];
