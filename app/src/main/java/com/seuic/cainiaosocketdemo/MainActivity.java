@@ -102,7 +102,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void startStatus(boolean status) {
                 if (!status) {
                     try {
-                        Thread.sleep(100);
+                        //防止时间过短引起socket多次连接
+                        Thread.sleep(3000);
                         retryTime++;
                         startLink();
                     } catch (InterruptedException e) {

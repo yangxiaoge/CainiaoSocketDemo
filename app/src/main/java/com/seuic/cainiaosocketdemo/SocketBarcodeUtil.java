@@ -65,6 +65,7 @@ public class SocketBarcodeUtil {
     //文件存储目录名称,客户可以自己定义
     public static String DIRNAME = "CaiNiaoBarcode";
     private static final int heartBeat = 20000;//心跳间隔20秒
+    private boolean stopAll; //关闭所有
 
     /**
      * 外部获取单例
@@ -104,26 +105,32 @@ public class SocketBarcodeUtil {
     }
 
     /**
+     * 调用方启动最好加个时间限制，3秒5秒等
      * 开启socket扫描解码方法
      *
      * @param inIps ip配置文件的字符串，ip之间以英文","分隔
      */
     public synchronized void startLink(SocketCallback startSocketCallback, String inIps) {
+        stopAll = false;
         this.callback = startSocketCallback;
         ipArray = inIps.split(",");
         if (ipArray.length >= 1 && (socket1 == null || !socket1.isConnected())) {
+            if (connectSuccess1) return;
             executor.execute(runnable1);
         }
 
         if (ipArray.length >= 2 && (socket2 == null || !socket2.isConnected())) {
+            if (connectSuccess2) return;
             executor.execute(runnable2);
         }
 
         if (ipArray.length >= 3 && (socket3 == null || !socket3.isConnected())) {
+            if (connectSuccess3) return;
             executor.execute(runnable3);
         }
 
         if (ipArray.length == 4 && (socket4 == null || !socket4.isConnected())) {
+            if (connectSuccess4) return;
             executor.execute(runnable4);
         }
     }
@@ -133,6 +140,8 @@ public class SocketBarcodeUtil {
      */
 
     private void stopLink1() {
+        Log.e("stopLink", "stopLink1");
+        if (stopAll) return;
         //socket1
         if (inputStream1 != null) {
             try {
@@ -179,6 +188,8 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink2() {
+        Log.e("stopLink", "stopLink2");
+        if (stopAll) return;
         //socket2
         if (inputStream2 != null) {
             try {
@@ -226,6 +237,7 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink3() {
+        if (stopAll) return;
         //socket3
         if (inputStream3 != null) {
             try {
@@ -272,6 +284,7 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink4() {
+        if (stopAll) return;
         //socket4
         if (inputStream4 != null) {
             try {
@@ -316,6 +329,8 @@ public class SocketBarcodeUtil {
     }
 
     public synchronized void stopLink() {
+        stopAll = true;
+        Log.e("stopLink", "stopLink----");
         //socket1
         if (inputStream1 != null) {
             try {
@@ -464,7 +479,7 @@ public class SocketBarcodeUtil {
 
         //关闭后回调连接状态为false
         if (callback != null) {
-            callback.startStatus(false);
+            //callback.startStatus(false);
             //callback = null;
         }
     }
@@ -518,7 +533,7 @@ public class SocketBarcodeUtil {
             }, 1000, heartBeat);
 
             while (socket1 != null && !socket1.isClosed()) {
-                boolean getSuccess = dealWithData1(inputStream1, xdata1);
+                boolean getSuccess = dealWithData1(inputStream1, xdata1, "socket1");
 //                if (getSuccess && !data.contains(xdata1.barcode)) {
                 if (getSuccess) {
                     data.add(xdata1.barcode);
@@ -590,7 +605,7 @@ public class SocketBarcodeUtil {
             }, 1000, heartBeat);
 
             while (socket2 != null && !socket2.isClosed()) {
-                boolean getSuccess = dealWithData2(inputStream2, xdata2);
+                boolean getSuccess = dealWithData2(inputStream2, xdata2, "socket2");
                 //                if (getSuccess && !data.contains(xdata1.barcode)) {
                 if (getSuccess) {
                     data.add(xdata2.barcode);
@@ -663,7 +678,7 @@ public class SocketBarcodeUtil {
             }, 1000, heartBeat);
 
             while (socket3 != null && !socket3.isClosed()) {
-                boolean getSuccess = dealWithData3(inputStream3, xdata3);
+                boolean getSuccess = dealWithData3(inputStream3, xdata3, "socket3");
                 //                if (getSuccess && !data.contains(xdata1.barcode)) {
                 if (getSuccess) {
 
@@ -738,7 +753,7 @@ public class SocketBarcodeUtil {
             }, 1000, heartBeat);
 
             while (socket4 != null && !socket4.isClosed()) {
-                boolean getSuccess = dealWithData4(inputStream4, xdata4);
+                boolean getSuccess = dealWithData4(inputStream4, xdata4, "socket4");
                 //                if (getSuccess && !data.contains(xdata1.barcode)) {
                 if (getSuccess) {
 
@@ -789,7 +804,7 @@ public class SocketBarcodeUtil {
      * @param xData 数据实体类
      * @return 解析是否成功
      */
-    private boolean dealWithData1(InputStream is, XData xData) {
+    private boolean dealWithData1(InputStream is, XData xData, String TAG) {
         try {
             //第一步
             byte[] buf = new byte[2]; //数据头->条码长度
@@ -802,12 +817,13 @@ public class SocketBarcodeUtil {
                 //循环读取18长度， 可能后台一次没有发足够数据
                 if (remain_length > 0) {
                     try {
+                        Log.i(TAG, "数据头 is.available() = " + is.available());
                         count = is.read(temp, 0, remain_length);
                         System.arraycopy(temp, 0, buf, received_Total, count);
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        Log.e(TAG, "Read 0xFEFE Exception " + ex.toString());
                         xData.error_msg = "Read 0xFEFE Exception " + ex.toString();
 
                         //异常后需要关闭socket
@@ -815,12 +831,12 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    Log.i(TAG, "Read 0xFEFE time outreceived_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 0xFEFE time out ");
+                    Log.e(TAG, "Read 0xFEFE time out ");
                     xData.error_msg = "Read 0xFEFE time out ";
                     return false;
                 }
@@ -828,15 +844,15 @@ public class SocketBarcodeUtil {
 
             //心跳 ok 检测，无需执行下去，直接return false
             if (new String(buf, "utf-8").equalsIgnoreCase("ok")) {
-                Log.e("socket1", "心跳 ok");
+                Log.e(TAG, "心跳 ok");
                 return false;
             }
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket1", "数据头不匹配");
+                Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
                 return false;
             }
-            Log.i("socket1", "读取数据头成功");
+            Log.i(TAG, "读取数据头成功");
 
             //版本号 + 机器序列号
             buf = new byte[14];
@@ -853,17 +869,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 版本号机器序列号 Exception " + ex.toString());
+                        Log.e(TAG, "Read 版本号机器序列号 Exception " + ex.toString());
                         xData.error_msg = "Read 版本号机器序列号 Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "版本号机器序列号 received_Total == " + received_Total);
+                    Log.i(TAG, "版本号机器序列号 received_Total == " + received_Total);
                     break;
                 }
 
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 版本号机器序列号 time out ");
+                    Log.e(TAG, "Read 版本号机器序列号 time out ");
                     xData.error_msg = "Read 版本号机器序列号 time out ";
                     return false;
                 }
@@ -888,8 +904,8 @@ public class SocketBarcodeUtil {
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
-            Log.i("socket1", "条码长度 = " + codeLength);
+            Log.i(TAG, "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
+            Log.i(TAG, "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
@@ -901,7 +917,7 @@ public class SocketBarcodeUtil {
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e("socket1", "条码长度异常，内存溢出" + codeLength);
+                Log.e(TAG, "条码长度异常，内存溢出" + codeLength);
                 return false;
             }
             received_Total = 0;
@@ -916,17 +932,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        Log.e(TAG, "Read barcodelen Exception " + ex.toString());
                         xData.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "barcodelen received_Total == " + received_Total);
+                    Log.i(TAG, "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read barcode time out ");
+                    Log.e(TAG, "Read barcode time out ");
                     xData.error_msg = "Read barcode time out ";
                     return false;
                 }
@@ -935,7 +951,7 @@ public class SocketBarcodeUtil {
                 xData.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读取条码成功 barcode =" + xData.barcode);
+            Log.i(TAG, "读取条码成功 barcode =" + xData.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -951,28 +967,28 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagenamelen Exception " + ex.toString());
                         xData.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagenamelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagenamelen time out ");
+                    Log.e(TAG, "Read imagenamelen time out ");
                     xData.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagenamelen received_Total != 4");
+                Log.e(TAG, "imagenamelen received_Total != 4");
                 xData.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
-            Log.i("socket1", "读图片名称长度成功");
+            Log.i(TAG, "读图片名称长度成功");
 
             //读图片名称长度,长度为buf数组的十进制值
             //2f000000(服务器从高到低，需要转成0000002f从低到高)
@@ -984,7 +1000,7 @@ public class SocketBarcodeUtil {
             //图片名称长度,
             //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
             long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+            Log.i(TAG, "读图片名称长度成功 imagenamelen = " + longLen);
 
             //第五步，读图片名称
             if (longLen > 0) {
@@ -996,7 +1012,7 @@ public class SocketBarcodeUtil {
                     temp = new byte[(int) longLen];
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.e("socket1", "读图片名称长度成功异常，内存溢出" + longLen);
+                    Log.e(TAG, "读图片名称长度成功异常，内存溢出" + longLen);
                     return false;
                 }
                 received_Total = 0;
@@ -1010,17 +1026,17 @@ public class SocketBarcodeUtil {
                             received_Total += count;
                             remain_length -= count;
                         } catch (Exception ex) {
-                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            Log.e(TAG, "Read imagename Exception " + ex.toString());
                             xData.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
-                        Log.i("socket1", "imagename received_Total == " + received_Total);
+                        Log.i(TAG, "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
-                        Log.e("socket1", "Read imagename time out ");
+                        Log.e(TAG, "Read imagename time out ");
                         xData.error_msg = "Read imagename time out ";
                         return false;
                     }
@@ -1029,7 +1045,7 @@ public class SocketBarcodeUtil {
                 xData.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读图片名称成功 imgname = " + xData.imgname);
+            Log.i(TAG, "读图片名称成功 imgname = " + xData.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -1045,24 +1061,24 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagelen Exception " + ex.toString());
                         xData.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagelen time out ");
+                    Log.e(TAG, "Read imagelen time out ");
                     xData.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagelen received_Total != 4");
+                Log.e(TAG, "imagelen received_Total != 4");
                 xData.error_msg = "imagelen received_Total != 4";
                 return false;
             }
@@ -1076,7 +1092,7 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+            Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
@@ -1086,24 +1102,27 @@ public class SocketBarcodeUtil {
                 buf = new byte[1024 * 10];
                 int tempCount;
                 try {
+                    Log.i(TAG, "保存图片字节 is.available() = " + is.available() + " imageCount = " + imageCount);
                     if (imagedatalen - imageCount < 1024 * 10) {
                         tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                        Log.i(TAG, "imageCount1 = " + imageCount + " tempCount1 = " + tempCount);
                     } else {
                         tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                        Log.i(TAG, "imageCount2 = " + imageCount + " tempCount2 = " + tempCount);
                     }
                     imageCount += tempCount;
-                    Log.i("socket1", "imageCount = " + imageCount + " tempCount = " + tempCount);
                     //if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
-                    Log.i("socket1", "保存图片字节出错 " + e.getMessage());
+                    Log.i(TAG, "保存图片字节出错 " + e.getMessage());
                     e.printStackTrace();
+                    stopLink1();
                     return false;
                 }
 
             }
-            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
-            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+            Log.i(TAG, "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i(TAG, "读图片数据成功 bos length= " + bos.toByteArray().length);
 
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
@@ -1120,31 +1139,31 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        Log.e(TAG, "Read scantime Exception " + ex.toString());
                         xData.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "scantime received_Total == " + received_Total);
+                    Log.i(TAG, "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read scantime time out ");
+                    Log.e(TAG, "Read scantime time out ");
                     xData.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "scantime received_Total != 19");
+                Log.e(TAG, "scantime received_Total != 19");
                 xData.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
+            Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
             if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -1161,7 +1180,7 @@ public class SocketBarcodeUtil {
         }
     }
 
-    private boolean dealWithData2(InputStream is, XData xData) {
+    private boolean dealWithData2(InputStream is, XData xData, String TAG) {
         try {
             //第一步
             byte[] buf = new byte[2]; //数据头->条码长度
@@ -1174,12 +1193,13 @@ public class SocketBarcodeUtil {
                 //循环读取18长度， 可能后台一次没有发足够数据
                 if (remain_length > 0) {
                     try {
+                        Log.i(TAG, "数据头 is.available() = " + is.available());
                         count = is.read(temp, 0, remain_length);
                         System.arraycopy(temp, 0, buf, received_Total, count);
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        Log.e(TAG, "Read 0xFEFE Exception " + ex.toString());
                         xData.error_msg = "Read 0xFEFE Exception " + ex.toString();
 
                         //异常后需要关闭socket
@@ -1187,12 +1207,12 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    Log.i(TAG, "Read 0xFEFE time outreceived_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 0xFEFE time out ");
+                    Log.e(TAG, "Read 0xFEFE time out ");
                     xData.error_msg = "Read 0xFEFE time out ";
                     return false;
                 }
@@ -1200,15 +1220,15 @@ public class SocketBarcodeUtil {
 
             //心跳 ok 检测，无需执行下去，直接return false
             if (new String(buf, "utf-8").equalsIgnoreCase("ok")) {
-                Log.e("socket1", "心跳 ok");
+                Log.e(TAG, "心跳 ok");
                 return false;
             }
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket1", "数据头不匹配");
+                Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
                 return false;
             }
-            Log.i("socket1", "读取数据头成功");
+            Log.i(TAG, "读取数据头成功");
 
             //版本号 + 机器序列号
             buf = new byte[14];
@@ -1225,17 +1245,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 版本号机器序列号 Exception " + ex.toString());
+                        Log.e(TAG, "Read 版本号机器序列号 Exception " + ex.toString());
                         xData.error_msg = "Read 版本号机器序列号 Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "版本号机器序列号 received_Total == " + received_Total);
+                    Log.i(TAG, "版本号机器序列号 received_Total == " + received_Total);
                     break;
                 }
 
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 版本号机器序列号 time out ");
+                    Log.e(TAG, "Read 版本号机器序列号 time out ");
                     xData.error_msg = "Read 版本号机器序列号 time out ";
                     return false;
                 }
@@ -1260,8 +1280,8 @@ public class SocketBarcodeUtil {
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
-            Log.i("socket1", "条码长度 = " + codeLength);
+            Log.i(TAG, "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
+            Log.i(TAG, "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
@@ -1273,7 +1293,7 @@ public class SocketBarcodeUtil {
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e("socket1", "条码长度异常，内存溢出" + codeLength);
+                Log.e(TAG, "条码长度异常，内存溢出" + codeLength);
                 return false;
             }
             received_Total = 0;
@@ -1288,17 +1308,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        Log.e(TAG, "Read barcodelen Exception " + ex.toString());
                         xData.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "barcodelen received_Total == " + received_Total);
+                    Log.i(TAG, "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read barcode time out ");
+                    Log.e(TAG, "Read barcode time out ");
                     xData.error_msg = "Read barcode time out ";
                     return false;
                 }
@@ -1307,7 +1327,7 @@ public class SocketBarcodeUtil {
                 xData.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读取条码成功 barcode =" + xData.barcode);
+            Log.i(TAG, "读取条码成功 barcode =" + xData.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -1323,28 +1343,28 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagenamelen Exception " + ex.toString());
                         xData.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagenamelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagenamelen time out ");
+                    Log.e(TAG, "Read imagenamelen time out ");
                     xData.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagenamelen received_Total != 4");
+                Log.e(TAG, "imagenamelen received_Total != 4");
                 xData.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
-            Log.i("socket1", "读图片名称长度成功");
+            Log.i(TAG, "读图片名称长度成功");
 
             //读图片名称长度,长度为buf数组的十进制值
             //2f000000(服务器从高到低，需要转成0000002f从低到高)
@@ -1356,7 +1376,7 @@ public class SocketBarcodeUtil {
             //图片名称长度,
             //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
             long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+            Log.i(TAG, "读图片名称长度成功 imagenamelen = " + longLen);
 
             //第五步，读图片名称
             if (longLen > 0) {
@@ -1368,7 +1388,7 @@ public class SocketBarcodeUtil {
                     temp = new byte[(int) longLen];
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.e("socket1", "读图片名称长度成功异常，内存溢出" + longLen);
+                    Log.e(TAG, "读图片名称长度成功异常，内存溢出" + longLen);
                     return false;
                 }
                 received_Total = 0;
@@ -1382,17 +1402,17 @@ public class SocketBarcodeUtil {
                             received_Total += count;
                             remain_length -= count;
                         } catch (Exception ex) {
-                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            Log.e(TAG, "Read imagename Exception " + ex.toString());
                             xData.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
-                        Log.i("socket1", "imagename received_Total == " + received_Total);
+                        Log.i(TAG, "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
-                        Log.e("socket1", "Read imagename time out ");
+                        Log.e(TAG, "Read imagename time out ");
                         xData.error_msg = "Read imagename time out ";
                         return false;
                     }
@@ -1401,7 +1421,7 @@ public class SocketBarcodeUtil {
                 xData.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读图片名称成功 imgname = " + xData.imgname);
+            Log.i(TAG, "读图片名称成功 imgname = " + xData.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -1417,24 +1437,24 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagelen Exception " + ex.toString());
                         xData.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagelen time out ");
+                    Log.e(TAG, "Read imagelen time out ");
                     xData.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagelen received_Total != 4");
+                Log.e(TAG, "imagelen received_Total != 4");
                 xData.error_msg = "imagelen received_Total != 4";
                 return false;
             }
@@ -1448,7 +1468,7 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+            Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
@@ -1458,24 +1478,27 @@ public class SocketBarcodeUtil {
                 buf = new byte[1024 * 10];
                 int tempCount;
                 try {
+                    Log.i(TAG, "保存图片字节 is.available() = " + is.available() + " imageCount = " + imageCount);
                     if (imagedatalen - imageCount < 1024 * 10) {
                         tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                        Log.i(TAG, "imageCount1 = " + imageCount + " tempCount1 = " + tempCount);
                     } else {
                         tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                        Log.i(TAG, "imageCount2 = " + imageCount + " tempCount2 = " + tempCount);
                     }
                     imageCount += tempCount;
-                    Log.i("socket1", "imageCount = " + imageCount + " tempCount = " + tempCount);
                     //if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
-                    Log.i("socket1", "保存图片字节出错 " + e.getMessage());
+                    Log.i(TAG, "保存图片字节出错 " + e.getMessage());
                     e.printStackTrace();
+                    stopLink2();
                     return false;
                 }
 
             }
-            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
-            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+            Log.i(TAG, "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i(TAG, "读图片数据成功 bos length= " + bos.toByteArray().length);
 
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
@@ -1492,31 +1515,31 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        Log.e(TAG, "Read scantime Exception " + ex.toString());
                         xData.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "scantime received_Total == " + received_Total);
+                    Log.i(TAG, "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read scantime time out ");
+                    Log.e(TAG, "Read scantime time out ");
                     xData.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "scantime received_Total != 19");
+                Log.e(TAG, "scantime received_Total != 19");
                 xData.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
+            Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
             if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -1533,7 +1556,7 @@ public class SocketBarcodeUtil {
         }
     }
 
-    private boolean dealWithData3(InputStream is, XData xData) {
+    private boolean dealWithData3(InputStream is, XData xData, String TAG) {
         try {
             //第一步
             byte[] buf = new byte[2]; //数据头->条码长度
@@ -1546,12 +1569,13 @@ public class SocketBarcodeUtil {
                 //循环读取18长度， 可能后台一次没有发足够数据
                 if (remain_length > 0) {
                     try {
+                        Log.i(TAG, "数据头 is.available() = " + is.available());
                         count = is.read(temp, 0, remain_length);
                         System.arraycopy(temp, 0, buf, received_Total, count);
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        Log.e(TAG, "Read 0xFEFE Exception " + ex.toString());
                         xData.error_msg = "Read 0xFEFE Exception " + ex.toString();
 
                         //异常后需要关闭socket
@@ -1559,12 +1583,12 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    Log.i(TAG, "Read 0xFEFE time outreceived_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 0xFEFE time out ");
+                    Log.e(TAG, "Read 0xFEFE time out ");
                     xData.error_msg = "Read 0xFEFE time out ";
                     return false;
                 }
@@ -1572,15 +1596,15 @@ public class SocketBarcodeUtil {
 
             //心跳 ok 检测，无需执行下去，直接return false
             if (new String(buf, "utf-8").equalsIgnoreCase("ok")) {
-                Log.e("socket1", "心跳 ok");
+                Log.e(TAG, "心跳 ok");
                 return false;
             }
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket1", "数据头不匹配");
+                Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
                 return false;
             }
-            Log.i("socket1", "读取数据头成功");
+            Log.i(TAG, "读取数据头成功");
 
             //版本号 + 机器序列号
             buf = new byte[14];
@@ -1597,17 +1621,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 版本号机器序列号 Exception " + ex.toString());
+                        Log.e(TAG, "Read 版本号机器序列号 Exception " + ex.toString());
                         xData.error_msg = "Read 版本号机器序列号 Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "版本号机器序列号 received_Total == " + received_Total);
+                    Log.i(TAG, "版本号机器序列号 received_Total == " + received_Total);
                     break;
                 }
 
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 版本号机器序列号 time out ");
+                    Log.e(TAG, "Read 版本号机器序列号 time out ");
                     xData.error_msg = "Read 版本号机器序列号 time out ";
                     return false;
                 }
@@ -1632,8 +1656,8 @@ public class SocketBarcodeUtil {
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
-            Log.i("socket1", "条码长度 = " + codeLength);
+            Log.i(TAG, "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
+            Log.i(TAG, "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
@@ -1645,7 +1669,7 @@ public class SocketBarcodeUtil {
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e("socket1", "条码长度异常，内存溢出" + codeLength);
+                Log.e(TAG, "条码长度异常，内存溢出" + codeLength);
                 return false;
             }
             received_Total = 0;
@@ -1660,17 +1684,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        Log.e(TAG, "Read barcodelen Exception " + ex.toString());
                         xData.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "barcodelen received_Total == " + received_Total);
+                    Log.i(TAG, "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read barcode time out ");
+                    Log.e(TAG, "Read barcode time out ");
                     xData.error_msg = "Read barcode time out ";
                     return false;
                 }
@@ -1679,7 +1703,7 @@ public class SocketBarcodeUtil {
                 xData.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读取条码成功 barcode =" + xData.barcode);
+            Log.i(TAG, "读取条码成功 barcode =" + xData.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -1695,28 +1719,28 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagenamelen Exception " + ex.toString());
                         xData.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagenamelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagenamelen time out ");
+                    Log.e(TAG, "Read imagenamelen time out ");
                     xData.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagenamelen received_Total != 4");
+                Log.e(TAG, "imagenamelen received_Total != 4");
                 xData.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
-            Log.i("socket1", "读图片名称长度成功");
+            Log.i(TAG, "读图片名称长度成功");
 
             //读图片名称长度,长度为buf数组的十进制值
             //2f000000(服务器从高到低，需要转成0000002f从低到高)
@@ -1728,7 +1752,7 @@ public class SocketBarcodeUtil {
             //图片名称长度,
             //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
             long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+            Log.i(TAG, "读图片名称长度成功 imagenamelen = " + longLen);
 
             //第五步，读图片名称
             if (longLen > 0) {
@@ -1740,7 +1764,7 @@ public class SocketBarcodeUtil {
                     temp = new byte[(int) longLen];
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.e("socket1", "读图片名称长度成功异常，内存溢出" + longLen);
+                    Log.e(TAG, "读图片名称长度成功异常，内存溢出" + longLen);
                     return false;
                 }
                 received_Total = 0;
@@ -1754,17 +1778,17 @@ public class SocketBarcodeUtil {
                             received_Total += count;
                             remain_length -= count;
                         } catch (Exception ex) {
-                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            Log.e(TAG, "Read imagename Exception " + ex.toString());
                             xData.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
-                        Log.i("socket1", "imagename received_Total == " + received_Total);
+                        Log.i(TAG, "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
-                        Log.e("socket1", "Read imagename time out ");
+                        Log.e(TAG, "Read imagename time out ");
                         xData.error_msg = "Read imagename time out ";
                         return false;
                     }
@@ -1773,7 +1797,7 @@ public class SocketBarcodeUtil {
                 xData.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读图片名称成功 imgname = " + xData.imgname);
+            Log.i(TAG, "读图片名称成功 imgname = " + xData.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -1789,24 +1813,24 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagelen Exception " + ex.toString());
                         xData.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagelen time out ");
+                    Log.e(TAG, "Read imagelen time out ");
                     xData.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagelen received_Total != 4");
+                Log.e(TAG, "imagelen received_Total != 4");
                 xData.error_msg = "imagelen received_Total != 4";
                 return false;
             }
@@ -1820,7 +1844,7 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+            Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
@@ -1830,24 +1854,27 @@ public class SocketBarcodeUtil {
                 buf = new byte[1024 * 10];
                 int tempCount;
                 try {
+                    Log.i(TAG, "保存图片字节 is.available() = " + is.available() + " imageCount = " + imageCount);
                     if (imagedatalen - imageCount < 1024 * 10) {
                         tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                        Log.i(TAG, "imageCount1 = " + imageCount + " tempCount1 = " + tempCount);
                     } else {
                         tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                        Log.i(TAG, "imageCount2 = " + imageCount + " tempCount2 = " + tempCount);
                     }
                     imageCount += tempCount;
-                    Log.i("socket1", "imageCount = " + imageCount + " tempCount = " + tempCount);
                     //if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
-                    Log.i("socket1", "保存图片字节出错 " + e.getMessage());
+                    Log.i(TAG, "保存图片字节出错 " + e.getMessage());
                     e.printStackTrace();
+                    stopLink3();
                     return false;
                 }
 
             }
-            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
-            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+            Log.i(TAG, "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i(TAG, "读图片数据成功 bos length= " + bos.toByteArray().length);
 
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
@@ -1864,31 +1891,31 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        Log.e(TAG, "Read scantime Exception " + ex.toString());
                         xData.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "scantime received_Total == " + received_Total);
+                    Log.i(TAG, "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read scantime time out ");
+                    Log.e(TAG, "Read scantime time out ");
                     xData.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "scantime received_Total != 19");
+                Log.e(TAG, "scantime received_Total != 19");
                 xData.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
+            Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
             if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -1905,7 +1932,7 @@ public class SocketBarcodeUtil {
         }
     }
 
-    private boolean dealWithData4(InputStream is, XData xData) {
+    private boolean dealWithData4(InputStream is, XData xData, String TAG) {
         try {
             //第一步
             byte[] buf = new byte[2]; //数据头->条码长度
@@ -1918,12 +1945,13 @@ public class SocketBarcodeUtil {
                 //循环读取18长度， 可能后台一次没有发足够数据
                 if (remain_length > 0) {
                     try {
+                        Log.i(TAG, "数据头 is.available() = " + is.available());
                         count = is.read(temp, 0, remain_length);
                         System.arraycopy(temp, 0, buf, received_Total, count);
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 0xFEFE Exception " + ex.toString());
+                        Log.e(TAG, "Read 0xFEFE Exception " + ex.toString());
                         xData.error_msg = "Read 0xFEFE Exception " + ex.toString();
 
                         //异常后需要关闭socket
@@ -1931,12 +1959,12 @@ public class SocketBarcodeUtil {
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "Read 0xFEFE time outreceived_Total == " + received_Total);
+                    Log.i(TAG, "Read 0xFEFE time outreceived_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 0xFEFE time out ");
+                    Log.e(TAG, "Read 0xFEFE time out ");
                     xData.error_msg = "Read 0xFEFE time out ";
                     return false;
                 }
@@ -1944,15 +1972,15 @@ public class SocketBarcodeUtil {
 
             //心跳 ok 检测，无需执行下去，直接return false
             if (new String(buf, "utf-8").equalsIgnoreCase("ok")) {
-                Log.e("socket1", "心跳 ok");
+                Log.e(TAG, "心跳 ok");
                 return false;
             }
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
-                Log.e("socket1", "数据头不匹配");
+                Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
                 return false;
             }
-            Log.i("socket1", "读取数据头成功");
+            Log.i(TAG, "读取数据头成功");
 
             //版本号 + 机器序列号
             buf = new byte[14];
@@ -1969,17 +1997,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read 版本号机器序列号 Exception " + ex.toString());
+                        Log.e(TAG, "Read 版本号机器序列号 Exception " + ex.toString());
                         xData.error_msg = "Read 版本号机器序列号 Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "版本号机器序列号 received_Total == " + received_Total);
+                    Log.i(TAG, "版本号机器序列号 received_Total == " + received_Total);
                     break;
                 }
 
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read 版本号机器序列号 time out ");
+                    Log.e(TAG, "Read 版本号机器序列号 time out ");
                     xData.error_msg = "Read 版本号机器序列号 time out ";
                     return false;
                 }
@@ -2004,8 +2032,8 @@ public class SocketBarcodeUtil {
 
             //条码长度
             long codeLength = BytesHexStrTranslate.bytes2int(temp);
-            Log.i("socket1", "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
-            Log.i("socket1", "条码长度 = " + codeLength);
+            Log.i(TAG, "条码长度codeBytes = " + BytesHexStrTranslate.Bytes2HexString(temp));
+            Log.i(TAG, "条码长度 = " + codeLength);
 
             //第三步，取条码,上面已经算出长度(18)
             //564533383137313230303534362d312d312d
@@ -2017,7 +2045,7 @@ public class SocketBarcodeUtil {
                 temp = new byte[(int) codeLength];//读取codeLength长度字节
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e("socket1", "条码长度异常，内存溢出" + codeLength);
+                Log.e(TAG, "条码长度异常，内存溢出" + codeLength);
                 return false;
             }
             received_Total = 0;
@@ -2032,17 +2060,17 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read barcodelen Exception " + ex.toString());
+                        Log.e(TAG, "Read barcodelen Exception " + ex.toString());
                         xData.error_msg = "Read barcodelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "barcodelen received_Total == " + received_Total);
+                    Log.i(TAG, "barcodelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read barcode time out ");
+                    Log.e(TAG, "Read barcode time out ");
                     xData.error_msg = "Read barcode time out ";
                     return false;
                 }
@@ -2051,7 +2079,7 @@ public class SocketBarcodeUtil {
                 xData.barcode = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读取条码成功 barcode =" + xData.barcode);
+            Log.i(TAG, "读取条码成功 barcode =" + xData.barcode);
 
             //第四步，读图片名称长度为4
             buf = new byte[4];
@@ -2067,28 +2095,28 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagenamelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagenamelen Exception " + ex.toString());
                         xData.error_msg = "Read imagenamelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagenamelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagenamelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagenamelen time out ");
+                    Log.e(TAG, "Read imagenamelen time out ");
                     xData.error_msg = "Read imagenamelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagenamelen received_Total != 4");
+                Log.e(TAG, "imagenamelen received_Total != 4");
                 xData.error_msg = "imagenamelen received_Total != 4";
                 return false;
             }
-            Log.i("socket1", "读图片名称长度成功");
+            Log.i(TAG, "读图片名称长度成功");
 
             //读图片名称长度,长度为buf数组的十进制值
             //2f000000(服务器从高到低，需要转成0000002f从低到高)
@@ -2100,7 +2128,7 @@ public class SocketBarcodeUtil {
             //图片名称长度,
             //int imagenamelen = BytesHexStrTranslate.byteArrayToInt(temp);
             long longLen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读图片名称长度成功 imagenamelen = " + longLen);
+            Log.i(TAG, "读图片名称长度成功 imagenamelen = " + longLen);
 
             //第五步，读图片名称
             if (longLen > 0) {
@@ -2112,7 +2140,7 @@ public class SocketBarcodeUtil {
                     temp = new byte[(int) longLen];
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.e("socket1", "读图片名称长度成功异常，内存溢出" + longLen);
+                    Log.e(TAG, "读图片名称长度成功异常，内存溢出" + longLen);
                     return false;
                 }
                 received_Total = 0;
@@ -2126,17 +2154,17 @@ public class SocketBarcodeUtil {
                             received_Total += count;
                             remain_length -= count;
                         } catch (Exception ex) {
-                            Log.e("socket1", "Read imagename Exception " + ex.toString());
+                            Log.e(TAG, "Read imagename Exception " + ex.toString());
                             xData.error_msg = "Read imagename Exception " + ex.toString();
                             return false;
                         }
                     } else {
-                        Log.i("socket1", "imagename received_Total == " + received_Total);
+                        Log.i(TAG, "imagename received_Total == " + received_Total);
                         break;
                     }
                     //Thread.Sleep(10);
                     if (time_count-- <= 0) {
-                        Log.e("socket1", "Read imagename time out ");
+                        Log.e(TAG, "Read imagename time out ");
                         xData.error_msg = "Read imagename time out ";
                         return false;
                     }
@@ -2145,7 +2173,7 @@ public class SocketBarcodeUtil {
                 xData.imgname = new String(buf, "utf-8");
             }
 
-            Log.i("socket1", "读图片名称成功 imgname = " + xData.imgname);
+            Log.i(TAG, "读图片名称成功 imgname = " + xData.imgname);
 
             //第六步，读取图片长度，4字节
             buf = new byte[4];
@@ -2161,24 +2189,24 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read imagelen Exception " + ex.toString());
+                        Log.e(TAG, "Read imagelen Exception " + ex.toString());
                         xData.error_msg = "Read imagelen Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "imagelen received_Total == " + received_Total);
+                    Log.i(TAG, "imagelen received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read imagelen time out ");
+                    Log.e(TAG, "Read imagelen time out ");
                     xData.error_msg = "Read imagelen time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "imagelen received_Total != 4");
+                Log.e(TAG, "imagelen received_Total != 4");
                 xData.error_msg = "imagelen received_Total != 4";
                 return false;
             }
@@ -2192,7 +2220,7 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
-            Log.i("socket1", "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
+            Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
             //int i = imagedatalen / 1024;
@@ -2202,24 +2230,27 @@ public class SocketBarcodeUtil {
                 buf = new byte[1024 * 10];
                 int tempCount;
                 try {
+                    Log.i(TAG, "保存图片字节 is.available() = " + is.available() + " imageCount = " + imageCount);
                     if (imagedatalen - imageCount < 1024 * 10) {
                         tempCount = is.read(buf, 0, imagedatalen - imageCount); //不足1024*10的时候不要读取过多字节流（可能把后面流也读了）
+                        Log.i(TAG, "imageCount1 = " + imageCount + " tempCount1 = " + tempCount);
                     } else {
                         tempCount = is.read(buf, 0, buf.length); //有可能读取的字节不是1024*10
+                        Log.i(TAG, "imageCount2 = " + imageCount + " tempCount2 = " + tempCount);
                     }
                     imageCount += tempCount;
-                    Log.i("socket1", "imageCount = " + imageCount + " tempCount = " + tempCount);
                     //if (tempCount == -1) return false;
                     bos.write(buf, 0, tempCount);
                 } catch (Exception e) {
-                    Log.i("socket1", "保存图片字节出错 " + e.getMessage());
+                    Log.i(TAG, "保存图片字节出错 " + e.getMessage());
                     e.printStackTrace();
+                    stopLink4();
                     return false;
                 }
 
             }
-            Log.i("socket1", "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
-            Log.i("socket1", "读图片数据成功 bos length= " + bos.toByteArray().length);
+            Log.i(TAG, "读图片数据成功 bos imagedatalen - imageCount = " + (imagedatalen - imageCount));
+            Log.i(TAG, "读图片数据成功 bos length= " + bos.toByteArray().length);
 
             //第八步最后一步，取扫描时间，校验码，一共19字节
             buf = new byte[19];
@@ -2236,31 +2267,31 @@ public class SocketBarcodeUtil {
                         received_Total += count;
                         remain_length -= count;
                     } catch (Exception ex) {
-                        Log.e("socket1", "Read scantime Exception " + ex.toString());
+                        Log.e(TAG, "Read scantime Exception " + ex.toString());
                         xData.error_msg = "Read scantime Exception " + ex.toString();
                         return false;
                     }
                 } else {
-                    Log.i("socket1", "scantime received_Total == " + received_Total);
+                    Log.i(TAG, "scantime received_Total == " + received_Total);
                     break;
                 }
                 //Thread.Sleep(10);
                 if (time_count-- <= 0) {
-                    Log.e("socket1", "Read scantime time out ");
+                    Log.e(TAG, "Read scantime time out ");
                     xData.error_msg = "Read scantime time out ";
                     return false;
                 }
             }
 
             if (received_Total != buf.length) {
-                Log.e("socket1", "scantime received_Total != 19");
+                Log.e(TAG, "scantime received_Total != 19");
                 xData.error_msg = "scantime received_Total != 19";
                 return false;
             }
             temp = new byte[17];
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
-            Log.i("socket1", "读图片数据完成, 扫描时间 = " + xData.scantime);
+            Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
             if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
