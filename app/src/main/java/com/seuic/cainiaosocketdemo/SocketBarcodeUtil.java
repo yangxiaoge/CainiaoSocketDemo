@@ -1144,6 +1144,9 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            if (imagedatalen == 16842494) {//FEFE0000就是16842494
+                Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+            }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
@@ -1520,6 +1523,9 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            if (imagedatalen == 16842494) {//FEFE0000就是16842494
+                Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+            }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
@@ -1896,6 +1902,9 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            if (imagedatalen == 16842494) {//FEFE0000就是16842494
+                Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+            }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
@@ -2272,6 +2281,9 @@ public class SocketBarcodeUtil {
             temp[3] = buf[0];
             //图片数据长度,字节数
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
+            if (imagedatalen == 16842494) {//FEFE0000就是16842494
+                Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+            }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
             //第七步，读图片数据,可能数组过长导致内存溢出，可考虑写入io文件（FileHelper类提供byte[]写入文件）
