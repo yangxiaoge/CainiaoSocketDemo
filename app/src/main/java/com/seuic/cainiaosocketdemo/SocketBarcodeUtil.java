@@ -60,12 +60,18 @@ public class SocketBarcodeUtil {
     private boolean connectSuccess2; //socket2连接成功
     private boolean connectSuccess3; //socket3连接成功
     private boolean connectSuccess4; //socket4连接成功
+    private boolean isConnecting1; //socket1连接中
+    private boolean isConnecting2; //socket2连接中
+    private boolean isConnecting3; //socket3连接中
+    private boolean isConnecting4; //socket4连接中
+
     //存储条码string集合，条码去重用
     private List<String> data = new ArrayList<>();
     //文件存储目录名称,客户可以自己定义
     public static String DIRNAME = "CaiNiaoBarcode";
     private static final int heartBeat = 20000;//心跳间隔20秒
-    private boolean stopAll; //关闭所有
+    private boolean stopAll; //关闭所有连接
+    private boolean isDebug = BuildConfig.DEBUG; //是否是debug模式
 
     /**
      * 外部获取单例
@@ -140,6 +146,7 @@ public class SocketBarcodeUtil {
      */
 
     private void stopLink1() {
+        isConnecting1 = false;
         Log.e("stopLink", "stopLink1");
         if (stopAll) return;
         //socket1
@@ -188,6 +195,7 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink2() {
+        isConnecting2 = false;
         Log.e("stopLink", "stopLink2");
         if (stopAll) return;
         //socket2
@@ -237,6 +245,8 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink3() {
+        isConnecting3 = false;
+        Log.e("stopLink", "stopLink3");
         if (stopAll) return;
         //socket3
         if (inputStream3 != null) {
@@ -284,6 +294,8 @@ public class SocketBarcodeUtil {
     }
 
     private void stopLink4() {
+        isConnecting4 = false;
+        Log.e("stopLink", "stopLink4");
         if (stopAll) return;
         //socket4
         if (inputStream4 != null) {
@@ -330,6 +342,7 @@ public class SocketBarcodeUtil {
 
     public synchronized void stopLink() {
         stopAll = true;
+        data.clear(); //清除下数据，防止内存消耗过大
         Log.e("stopLink", "stopLink----");
         //socket1
         if (inputStream1 != null) {
@@ -490,7 +503,17 @@ public class SocketBarcodeUtil {
     Runnable runnable1 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket1", "准备启动socket1");
+            if (socket1 == null || socket1.isClosed()) {
+                Log.e("socket1", "准备启动socket1");
+            }
+            if (isConnecting1) {
+                try {
+                    Thread.sleep(3000);
+                    if (isConnecting1 || connectSuccess1 || stopAll) return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             socketClient1();
         }
     };
@@ -500,6 +523,7 @@ public class SocketBarcodeUtil {
      */
     private void socketClient1() {
         try {
+            isConnecting1 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             //1、创建监听指定服务器地址以及指定服务器监听的端口号
             socket1 = new Socket(ipArray[0], PORT);
@@ -519,7 +543,7 @@ public class SocketBarcodeUtil {
                     try {
                         if (socket1 == null || outputStream1 == null) return;
                         outputStream1.write(1);
-                        Log.i("timer1", "timer1timer1timer1timer1");
+                        Log.i("timer1", "timer1timer1timer1timer1 " + socket1);
                     } catch (IOException e) {
                         if (timer1 != null) {
                             timer1.cancel();
@@ -564,7 +588,17 @@ public class SocketBarcodeUtil {
     Runnable runnable2 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket2", "准备启动socket2");
+            if (socket2 == null || socket2.isClosed()) {
+                Log.e("socket2", "准备启动socket2");
+            }
+            if (isConnecting2) {
+                try {
+                    Thread.sleep(3000);
+                    if (isConnecting2 || connectSuccess2 || stopAll) return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             socketClient2();
         }
     };
@@ -574,6 +608,7 @@ public class SocketBarcodeUtil {
      */
     private void socketClient2() {
         try {
+            isConnecting2 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket2 = new Socket(ipArray[1], PORT);
             // 判断客户端和服务器是否连接成功
@@ -592,7 +627,7 @@ public class SocketBarcodeUtil {
                     try {
                         if (socket2 == null || outputStream2 == null) return;
                         outputStream2.write(1);
-                        Log.i("timer2", "timer2timer2timer2timer2");
+                        Log.i("timer2", "timer2timer2timer2timer2 " + socket2);
                     } catch (IOException e) {
                         if (timer2 != null) {
                             timer2.cancel();
@@ -632,11 +667,20 @@ public class SocketBarcodeUtil {
     /**
      * socket连接相机3
      */
-
     Runnable runnable3 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket3", "准备启动socket3");
+            if (socket3 == null || socket3.isClosed()) {
+                Log.e("socket3", "准备启动socket3");
+            }
+            if (isConnecting3) {
+                try {
+                    Thread.sleep(3000);
+                    if (isConnecting3 || connectSuccess3 || stopAll) return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             socketClient3();
         }
     };
@@ -644,9 +688,9 @@ public class SocketBarcodeUtil {
     /**
      * 连接socket3
      */
-
     private void socketClient3() {
         try {
+            isConnecting3 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket3 = new Socket(ipArray[2], PORT);
             // 判断客户端和服务器是否连接成功
@@ -665,7 +709,7 @@ public class SocketBarcodeUtil {
                     try {
                         if (socket3 == null || outputStream3 == null) return;
                         outputStream3.write(1);
-                        Log.i("timer3", "timer3timer3timer3timer3");
+                        Log.i("timer3", "timer3timer3timer3timer3 " + socket3);
                     } catch (IOException e) {
                         if (timer3 != null) {
                             timer3.cancel();
@@ -703,15 +747,23 @@ public class SocketBarcodeUtil {
         }
     }
 
-
     /**
      * socket连接相机3
      */
-
     Runnable runnable4 = new Runnable() {
         @Override
         public void run() {
-            Log.e("socket4", "准备启动socket4");
+            if (socket4 == null || socket4.isClosed()) {
+                Log.e("socket4", "准备启动socket4");
+            }
+            if (isConnecting4) {
+                try {
+                    Thread.sleep(3000);
+                    if (isConnecting4 || connectSuccess4 || stopAll) return;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             socketClient4();
         }
     };
@@ -719,9 +771,9 @@ public class SocketBarcodeUtil {
     /**
      * 连接socket3
      */
-
     private void socketClient4() {
         try {
+            isConnecting4 = true;
             // 创建Socket对象 & 指定服务端的IP 及 端口号
             socket4 = new Socket(ipArray[3], PORT);
             // 判断客户端和服务器是否连接成功
@@ -1166,7 +1218,7 @@ public class SocketBarcodeUtil {
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
-            if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
+            if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
                 return false;
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
@@ -1542,7 +1594,7 @@ public class SocketBarcodeUtil {
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
-            if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
+            if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
                 return false;
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
@@ -1918,7 +1970,7 @@ public class SocketBarcodeUtil {
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
-            if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
+            if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
                 return false;
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);
@@ -2294,7 +2346,7 @@ public class SocketBarcodeUtil {
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
 
             //去重， debug的时候可以注释掉
-            if (data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
+            if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
                 return false;
 
             final Bitmap imgBitmap = BitmapFactory.decodeByteArray(bos.toByteArray(), 0, bos.toByteArray().length);

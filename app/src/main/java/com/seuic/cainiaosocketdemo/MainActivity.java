@@ -101,14 +101,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void startStatus(boolean status) {
                 if (!status) {
-                    try {
-                        //防止时间过短引起socket多次连接
-                        Thread.sleep(3000);
-                        retryTime++;
-                        startLink();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    retryTime++;
+                    startLink();
                 } else {
                     retryTime = 0;
                 }
