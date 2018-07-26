@@ -3,6 +3,7 @@ package com.seuic.cainiaosocketdemo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Environment;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
@@ -71,7 +72,7 @@ public class SocketBarcodeUtil {
     public static String DIRNAME = "CaiNiaoBarcode";
     private static final int heartBeat = 20000;//心跳间隔20秒
     private boolean stopAll; //关闭所有连接
-    private boolean isDebug = BuildConfig.DEBUG; //是否是debug模式
+    private boolean isDebug = BuildConfig.DEBUG; //是否是debug模式(debug不去重，release去重)
 
     /**
      * 外部获取单例
@@ -340,6 +341,9 @@ public class SocketBarcodeUtil {
         }
     }
 
+    /**
+     * 关闭所有连接，不需要回调重连
+     */
     public synchronized void stopLink() {
         stopAll = true;
         data.clear(); //清除下数据，防止内存消耗过大
@@ -490,11 +494,6 @@ public class SocketBarcodeUtil {
         connectSuccess3 = false;
         connectSuccess4 = false;
 
-        //关闭后回调连接状态为false
-        if (callback != null) {
-            //callback.startStatus(false);
-            //callback = null;
-        }
     }
 
     /**
@@ -1146,6 +1145,9 @@ public class SocketBarcodeUtil {
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
             if (imagedatalen == 16842494) {//FEFE0000就是16842494
                 Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+                //异常后需要关闭socket
+                stopLink1();
+                return false;
             }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
@@ -1219,6 +1221,13 @@ public class SocketBarcodeUtil {
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
+
+            //时间非数字，则解析出错
+            if (!TextUtils.isDigitsOnly(xData.scantime)) {
+                Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = 出错啦");
+                stopLink1();
+                return false;
+            }
 
             //去重， debug的时候可以注释掉
             if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -1525,6 +1534,9 @@ public class SocketBarcodeUtil {
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
             if (imagedatalen == 16842494) {//FEFE0000就是16842494
                 Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+                //异常后需要关闭socket
+                stopLink2();
+                return false;
             }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
@@ -1598,6 +1610,13 @@ public class SocketBarcodeUtil {
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
+
+            //时间非数字，则解析出错
+            if (!TextUtils.isDigitsOnly(xData.scantime)) {
+                Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = 出错啦");
+                stopLink2();
+                return false;
+            }
 
             //去重， debug的时候可以注释掉
             if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -1904,6 +1923,9 @@ public class SocketBarcodeUtil {
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
             if (imagedatalen == 16842494) {//FEFE0000就是16842494
                 Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+                //异常后需要关闭socket
+                stopLink3();
+                return false;
             }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
@@ -1977,6 +1999,13 @@ public class SocketBarcodeUtil {
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
+
+            //时间非数字，则解析出错
+            if (!TextUtils.isDigitsOnly(xData.scantime)) {
+                Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = 出错啦");
+                stopLink3();
+                return false;
+            }
 
             //去重， debug的时候可以注释掉
             if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
@@ -2283,6 +2312,9 @@ public class SocketBarcodeUtil {
             int imagedatalen = BytesHexStrTranslate.byteArrayToInt(temp);
             if (imagedatalen == 16842494) {//FEFE0000就是16842494
                 Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen 出错啦");
+                //异常后需要关闭socket
+                stopLink4();
+                return false;
             }
             Log.i(TAG, "读取图片长度成功 图片数据长度 imagedatalen = " + imagedatalen);
 
@@ -2356,6 +2388,13 @@ public class SocketBarcodeUtil {
             System.arraycopy(buf, 0, temp, 0, 17); //只取时间17位
             xData.scantime = new String(temp, "utf-8");
             Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = " + xData.scantime);
+
+            //时间非数字，则解析出错
+            if (!TextUtils.isDigitsOnly(xData.scantime)) {
+                Log.i(TAG, "读图片数据完成 ---- endendend ----, 扫描时间 = 出错啦");
+                stopLink4();
+                return false;
+            }
 
             //去重， debug的时候可以注释掉
             if (!isDebug && data.contains(xData.barcode) && !xData.barcode.equalsIgnoreCase("wrong"))
