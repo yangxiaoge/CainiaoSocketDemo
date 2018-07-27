@@ -791,7 +791,7 @@ public class SocketBarcodeUtil {
                     try {
                         if (socket4 == null || outputStream4 == null) return;
                         outputStream4.write(1);
-                        Log.i("timer4", "timer4timer4timer4timer4");
+                        Log.i("timer4", "timer4timer4timer4timer4 " + socket4);
                     } catch (IOException e) {
                         if (timer4 != null) {
                             timer4.cancel();
