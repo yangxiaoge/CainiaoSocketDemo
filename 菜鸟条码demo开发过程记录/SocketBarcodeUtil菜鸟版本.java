@@ -20,9 +20,8 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 //import com.seuic.cainiaosocketdemo.util.BytesHexStrTranslate;
 
@@ -34,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class SocketBarcodeUtil {
     private static SocketBarcodeUtil instance;// 单例模式
-    private static ThreadPoolExecutor executor;// 全局的线程池
+    private static Executor executor;// 全局的线程池
     private static final int PORT = 7777; //端口
     private XData xdata1 = new XData();
     private XData xdata2 = new XData();
@@ -87,7 +86,7 @@ public class SocketBarcodeUtil {
 
         if (executor == null)
             // 新建一个4个线程的线程池
-            executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>());
+            executor = Executors.newFixedThreadPool(4);
         return instance;
     }
 
@@ -140,12 +139,6 @@ public class SocketBarcodeUtil {
         if (ipArray.length == 4 && (socket4 == null || !socket4.isConnected())) {
             if (connectSuccess4) return;
             executor.execute(runnable4);
-        }
-
-        Log.e("socket", "executor.getQueue().size() = " + executor.getQueue().size());
-        if (executor.getQueue().size()> 30) { // too many thread queue
-            executor.shutdown(); //shutdown executor
-            executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>());
         }
     }
 
@@ -352,7 +345,6 @@ public class SocketBarcodeUtil {
      * 关闭所有连接，不需要回调重连
      */
     public synchronized void stopLink() {
-        //executor.shutdown();
         stopAll = true;
         data.clear(); //清除下数据，防止内存消耗过大
         Log.e("stopLink", "stopLink----");
@@ -909,7 +901,6 @@ public class SocketBarcodeUtil {
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
-                stopLink1();
                 return false;
             }
             Log.i(TAG, "读取数据头成功");
@@ -1299,7 +1290,6 @@ public class SocketBarcodeUtil {
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
-                stopLink2();
                 return false;
             }
             Log.i(TAG, "读取数据头成功");
@@ -1689,7 +1679,6 @@ public class SocketBarcodeUtil {
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
-                stopLink3();
                 return false;
             }
             Log.i(TAG, "读取数据头成功");
@@ -2079,7 +2068,6 @@ public class SocketBarcodeUtil {
             //数据头不匹配
             if (!BytesHexStrTranslate.bytesToHexString(buf, 2).equals("FEFE")) {
                 Log.e(TAG, "数据头不匹配 = " + BytesHexStrTranslate.bytesToHexString(buf, 2));
-                stopLink4();
                 return false;
             }
             Log.i(TAG, "读取数据头成功");
