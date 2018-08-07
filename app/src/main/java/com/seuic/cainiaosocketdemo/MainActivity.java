@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
             @Override
-            public void barcode(String barcode) {
+            public void barcode(String barcode, String scanTime) {
                 Log.d("MainActivity", "二维码 barcode:" + barcode);
                 //刷新数据
                 codeListUpdate(barcode);

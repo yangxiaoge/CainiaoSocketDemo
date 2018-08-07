@@ -107,9 +107,10 @@ public class SocketBarcodeUtil {
         /**
          * 回调二维码
          *
-         * @param barcode barcode
+         * @param barcode  barcode
+         * @param scanTime scanTime
          */
-        void barcode(String barcode);
+        void barcode(String barcode, String scanTime);
     }
 
     /**
@@ -143,7 +144,7 @@ public class SocketBarcodeUtil {
         }
 
         Log.e("socket", "executor.getQueue().size() = " + executor.getQueue().size());
-        if (executor.getQueue().size()> 30) { // too many thread queue
+        if (executor.getQueue().size() > 30) { // too many thread queue
             executor.shutdown(); //shutdown executor
             executor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>());
         }
@@ -569,7 +570,7 @@ public class SocketBarcodeUtil {
                 if (getSuccess) {
                     data.add(xdata1.barcode);
                     if (callback != null)
-                        callback.barcode(xdata1.barcode);
+                        callback.barcode(xdata1.barcode, xdata1.scantime);
                 }
             }
 
@@ -652,7 +653,7 @@ public class SocketBarcodeUtil {
                 if (getSuccess) {
                     data.add(xdata2.barcode);
                     if (callback != null)
-                        callback.barcode(xdata2.barcode);
+                        callback.barcode(xdata2.barcode, xdata2.scantime);
                 }
             }
 
@@ -735,7 +736,7 @@ public class SocketBarcodeUtil {
 
                     data.add(xdata3.barcode);
                     if (callback != null)
-                        callback.barcode(xdata3.barcode);
+                        callback.barcode(xdata3.barcode, xdata3.scantime);
                 }
             }
 
@@ -818,7 +819,7 @@ public class SocketBarcodeUtil {
 
                     data.add(xdata4.barcode);
                     if (callback != null)
-                        callback.barcode(xdata4.barcode);
+                        callback.barcode(xdata4.barcode, xdata4.scantime);
                 }
             }
 
